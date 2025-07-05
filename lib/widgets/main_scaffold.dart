@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:tarami_application/pages/home.dart';
-import 'package:tarami_application/pages/dictionary.dart';
-import 'package:tarami_application/pages/contribute.dart';
-import 'package:tarami_application/pages/trivia.dart';
-import 'package:tarami_application/pages/userTab.dart';
+import 'package:tarami_application/features/home/view/home_screen.dart';
+import 'package:tarami_application/features/dictionary/view/dictionary_screen.dart';
+import 'package:tarami_application/features/contribute/view/contribute_screen.dart';
+import 'package:tarami_application/features/trivia/view/trivia_screen.dart';
+import 'package:tarami_application/features/user/view/user_tab_screen.dart';
+
 import 'package:tarami_application/widgets/bottom_nav.dart';
 
 class MainScaffold extends StatefulWidget {
@@ -17,11 +18,11 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = const [
-    Home(),
-    dictionary(),
-    contribute(),
-    trivia(),
-    userTab(),
+    HomeScreen(),
+    DictionaryScreen(),
+    ContributeScreen(),
+    TriviaScreen(),
+    UserTabScreen(),
   ];
 
   void _onTabTapped(int index) {

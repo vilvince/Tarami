@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 
-class trivia extends StatefulWidget {
-  const trivia({super.key});
+class TriviaScreen extends StatefulWidget {
+  const TriviaScreen({super.key});
 
   @override
-  State<trivia> createState() => _triviaState();
+  State<TriviaScreen> createState() => _TriviaScreenState();
 }
 
-class _triviaState extends State<trivia> {
+class _TriviaScreenState extends State<TriviaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
