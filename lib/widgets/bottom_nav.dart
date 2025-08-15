@@ -5,7 +5,7 @@ BottomNavigationBar buildBottomNavBar(int currentIndex, Function(int) onTabTappe
     currentIndex: currentIndex,
     onTap: onTabTapped,
     type: BottomNavigationBarType.fixed,
-    backgroundColor: const Color(0xFF0B1E2D),
+    backgroundColor: const Color(0xFF0d2334),
     selectedItemColor: Colors.white,
     unselectedItemColor: Colors.white60,
     items: const [

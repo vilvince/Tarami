@@ -31,12 +31,16 @@ dependencies:
   flutter:
     sdk: flutter
 
+  intl: ^0.18.1
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
   flutter_native_splash: ^2.4.6
   flutter_launcher_icons: ^0.14.4
+  provider: ^6.1.1
+  google_fonts:  ^6.1.0
 
 flutter_native_splash:
   color: "#FFFFFF"
@@ -75,7 +79,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-   - assets/taramiLogo.png
+   - assets/TaramiLogo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -88,11 +92,22 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
+fonts:
+  - family: Poppins
+    fonts:
+    - asset: assets/fonts/Poppins-Bold.ttf
+      weight: 700
+    - asset: assets/fonts/Poppins-ExtraLight.ttf
+      weight: 200
+    - asset: assets/fonts/Poppins-Italic.ttf
+      style: italic
+    - asset: assets/fonts/Poppins-Medium.ttf
+      weight: 500
+    - asset: assets/fonts/Poppins-Regular.ttf
+      weight: 400
+    - asset: assets/fonts/Poppins-SemiBold.ttf
+      weight: 600
+
   #         style: italic
   #   - family: Trajan Pro
   #     fonts:
