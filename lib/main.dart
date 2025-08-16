@@ -1,8 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:tarami_application/widgets/main_scaffold.dart'; // New shared layout
+import 'package:provider/provider.dart';
+import 'package:tarami_application/features/auth/view/login.dart';
+import 'package:tarami_application/features/dictionary/viewmodel/dictionary_view_model.dart'; // ✅ correct path
 
 void main() {
-  runApp(const TaramiApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => DictionaryViewModel(), // ✅ class from correct file
+        ),
+        // Add more providers here if needed
+      ],
+      child: const TaramiApp(),
+    ),
+  );
 }
 
 class TaramiApp extends StatelessWidget {
@@ -11,8 +23,17 @@ class TaramiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Tarami App',
       debugShowCheckedModeBanner: false,
-      home: const MainScaffold(),
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.blue,
+          elevation: 0,
+        ),
+      ),
+      home: const LoginPage(), // Starting page
     );
   }
 }
