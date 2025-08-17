@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 class DictionaryScreen extends StatefulWidget {
   const DictionaryScreen({super.key});
 
@@ -13,9 +12,11 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Text ('Dictionary Page'),
+        child: Text(
+          'Dictionary Page',
+          style: TextStyle(fontSize: 24),
+        ),
       ),
     );
-
   }
 }
