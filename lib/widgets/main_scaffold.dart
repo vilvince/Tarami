@@ -18,10 +18,10 @@ class _MainScaffoldState extends State<MainScaffold> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = const [
-    HomeScreen(),
+    HomeScreenPage(),
     DictionaryScreen(),
-    ContributeScreen(),
-    TriviaScreen(),
+    ContributeScreenPage(),
+    TriviaScreenPage(),
     UserTabScreen(),
   ];
 
