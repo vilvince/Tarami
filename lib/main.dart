@@ -15,6 +15,8 @@ import 'package:tarami_application/features/user/viewmodel/recent_viewmodel.dart
 
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:tarami_application/features/auth/view/login.dart';
+import 'package:tarami_application/features/dictionary/viewmodel/dictionary_view_model.dart'; // ✅ correct path
 
 void main() {
   runApp(
@@ -24,6 +26,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => SubmissionViewModel()),
         ChangeNotifierProvider(create: (_) => FavoriteViewModel()),
         ChangeNotifierProvider(create: (_) => RecentViewModel()),
+        ChangeNotifierProvider(create: (_) => DictionaryViewModel()),
       ],
       child: const TaramiApp(),
     ),
@@ -42,7 +45,7 @@ class TaramiApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         useMaterial3: true, // optional, depending on your setup
       ),
-      home: const MainScaffold(),
+      home: const LoginPage(),
       routes: {
         '/submission': (context) => const SubmissionScreen(),
         '/faqs': (context) => const FaqsScreen(),

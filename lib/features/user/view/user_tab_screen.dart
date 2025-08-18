@@ -7,6 +7,7 @@ import 'package:tarami_application/features/user/view/quiz_start_screen.dart';
 import 'package:tarami_application/features/user/view/recent_screen.dart';
 import 'package:tarami_application/features/user/view/submission_screen.dart';
 import 'package:tarami_application/features/user/view/faqs_screen.dart';
+import 'package:tarami_application/features/auth/view/login.dart';
 
 class UserTabScreen extends StatefulWidget { // Changed to StatefulWidget
   const UserTabScreen({super.key});
@@ -16,7 +17,31 @@ class UserTabScreen extends StatefulWidget { // Changed to StatefulWidget
   State<UserTabScreen> createState() => _UserTabScreenState();
 }
 
+
 class _UserTabScreenState extends State<UserTabScreen> { // State class
+  // --- START OF LOGOUT LOGIC ---
+  Future<void> _performLogout() async {
+    // 1. Add your actual logout logic here:
+    //    - Clear any stored user tokens (e.g., from SharedPreferences, secure storage).
+    //    - Reset any user-specific state in your ViewModels or services.
+    //    - Example:
+    //      final prefs = await SharedPreferences.getInstance();
+    //      await prefs.remove('userToken');
+    //      Provider.of<AuthViewModel>(context, listen: false).clearUserData(); // If you have an AuthViewModel
+
+    print('User logged out. Add actual token/session clearing logic here.');
+
+    // 2. Navigate to the LoginScreen and remove all previous routes.
+    //    This prevents the user from pressing 'back' to return to the UserTabScreen.
+    if (mounted) { // Check if the widget is still in the tree
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginPage()), // Navigate to LoginScreen
+            (Route<dynamic> route) => false, // This predicate removes all routes
+      );
+    }
+  }
+  // --
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -258,7 +283,7 @@ class _UserTabScreenState extends State<UserTabScreen> { // State class
                         size: 16, color: Colors.red),
                     onTap: () {
                       // TODO: Add your logout logic
-                      Navigator.pushReplacementNamed(context, '/login');
+                      _performLogout();
                     },
                   ),
                 ),

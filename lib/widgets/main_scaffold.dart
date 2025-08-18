@@ -19,7 +19,7 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   final List<Widget> _pages = const [
     HomeScreenPage(),
-    DictionaryScreen(),
+    Dictionary(),
     ContributeScreenPage(),
     TriviaScreenPage(),
     UserTabScreen(),
