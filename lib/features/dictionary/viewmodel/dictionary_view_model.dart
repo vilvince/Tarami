@@ -53,6 +53,14 @@ class DictionaryViewModel extends ChangeNotifier {
     'Startled': ['Calm'],
   };
 
+  /// NEW: Etymology storage for translations
+  final Map<String, String> _translationEtymologies = {
+    'Nakigkig': "From root word 'kigkig' (shiver/tremble) with prefix 'na-' indicating completed aspect.",
+    'Nagbulag': "Derived from 'bulag' (to be shocked/startled) with infix '-nag-' for completed action.",
+    'Nagulat': "From root 'gulat' (to be startled), with prefix 'na-' marking completed aspect.",
+    'Nasorpresa': "Borrowed from Spanish 'sorpresa' (surprise), adapted with prefix 'na-' for completed aspect.",
+  };
+
   // Getters
   List<String> get dialects => _dialects;
   int get selectedDialectIndex => _selectedDialectIndex;
@@ -71,6 +79,10 @@ class DictionaryViewModel extends ChangeNotifier {
 
   List<String> getSynonyms(String word) => _synonyms[word] ?? [];
   List<String> getAntonyms(String word) => _antonyms[word] ?? [];
+
+  /// NEW: Get etymology for a given translation
+  String? getTranslationEtymology(String translation) =>
+      _translationEtymologies[translation];
 
   // Actions
   void selectDialect(int index) {

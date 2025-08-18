@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/dictionary_view_model.dart';
 
-
-
 class Dictionary extends StatelessWidget {
   const Dictionary({super.key});
 
@@ -54,30 +52,47 @@ class Dictionary extends StatelessWidget {
 
   Widget _buildSearchBar() {
     return Container(
-      height: 40,
+      height: 50,
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
-        children: const [
-          Icon(Icons.search, color: Colors.black54),
-          SizedBox(width: 8),
+        children: [
+          const Icon(Icons.search, color: Colors.grey),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
-              decoration: InputDecoration(
+              textAlign: TextAlign.left,
+              textAlignVertical: TextAlignVertical.center,
+              decoration: const InputDecoration(
                 hintText: 'Search...',
+                hintStyle: TextStyle(
+                  color: Colors.black54,
+                  fontSize: 18,
+                ),
                 border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+                suffixIcon: Icon(Icons.mic, color: Colors.grey, size: 25),
               ),
-              style: TextStyle(color: Colors.black87),
+              style: const TextStyle(color: Colors.black87),
             ),
           ),
-          Icon(Icons.mic, color: Colors.black54),
         ],
       ),
     );
   }
+
 
   Widget _buildPlainTextDialectRow(DictionaryViewModel viewModel) {
     return Padding(
@@ -90,13 +105,12 @@ class Dictionary extends StatelessWidget {
             return GestureDetector(
               onTap: () => viewModel.selectDialect(index),
               child: Padding(
-                padding: const EdgeInsets.only(right: 20),
+                padding: const EdgeInsets.only(right: 40),
                 child: Text(
                   viewModel.dialects[index],
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight:
-                    isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 18,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     color: isSelected ? Colors.amber : Colors.white,
                   ),
                 ),
@@ -108,6 +122,7 @@ class Dictionary extends StatelessWidget {
     );
   }
 
+
   Widget _buildWordList(DictionaryViewModel viewModel) {
     return ListView.builder(
       itemCount: viewModel.currentWordList.length,
@@ -115,7 +130,11 @@ class Dictionary extends StatelessWidget {
         return ListTile(
           title: Text(
             viewModel.currentWordList[index],
-            style: const TextStyle(color: Colors.black),
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
           ),
           onTap: () => viewModel.selectWord(viewModel.currentWordList[index]),
         );
@@ -123,10 +142,10 @@ class Dictionary extends StatelessWidget {
     );
   }
 
+
   Widget _buildDetailView(DictionaryViewModel viewModel) {
     final word = viewModel.selectedWord!;
-    final dialectTranslation =
-        viewModel.getDialectTranslation(word) ?? word;
+    final dialectTranslation = viewModel.getDialectTranslation(word) ?? word;
     final pronunciation = "/${word.toLowerCase()}/";
     final tagalog = "Nagulat";
     final definitions = [
@@ -380,10 +399,33 @@ class Dictionary extends StatelessWidget {
                       );
                     }).toList(),
                   ),
+                  const SizedBox(height: 12),
                 ],
               ],
             ),
           ),
+
+          // Etymology (NO CARD)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Etymology",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const Divider(thickness: 1),
+                const SizedBox(height: 8),
+                Text(
+                  viewModel.getTranslationEtymology(dialectTranslation) ??
+                      'No etymology available for this translation.',
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
