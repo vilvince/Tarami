@@ -114,7 +114,8 @@ class SubmissionDetailScreen extends StatelessWidget {
                         buildDetailRow('Part of Speech:', submission['partOfSpeech']),
                         buildDetailRow('Definition:', submission['definition']),
                         buildDetailRow('Example Sentence:', submission['exampleSentence']),
-                        buildDetailRow('Synonyms:', submission['synonyms'] ?? 'Lamón, Konsumo, Pagkaon'),
+                        buildDetailRow('Synonyms:', submission['synonyms']),
+                        buildDetailRow('Etymology:', submission['etymology']),
 
                       ],
                     ),

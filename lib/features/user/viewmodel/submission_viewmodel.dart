@@ -15,7 +15,9 @@ class SubmissionViewModel extends ChangeNotifier {
         tagalog: 'Kain',
         definition: 'To put (food) into the mouth and chew and swallow dhfgjksa kjsdhgkjsah g asjdghfska dgjahsdg asdggkjhsad gsagjkh fgdkshfgjkhds dfjghd fgljkh sdfgjk sjfdghdsjkfg kljdhfgjsdh.',
         exampleSentence: 'Kaon na kita!',
-        synonyms: 'Lugod, Pakaon'
+        synonyms: 'Lugod, Pakaon',
+        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
+
     ),
     Submission(
         id: '2',
@@ -29,7 +31,8 @@ class SubmissionViewModel extends ChangeNotifier {
         tagalog: 'Tigil',
         definition: 'To cease from some action or operation; to come to an end.',
         exampleSentence: 'Pundo na kita!',
-        synonyms: 'Para, Pakaon'
+        synonyms: 'Para, Pakaon',
+        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
     ),
     Submission(
         id: '3',
@@ -43,7 +46,9 @@ class SubmissionViewModel extends ChangeNotifier {
         tagalog: 'Bahay',
         definition: 'A building for human habitation, especially one that consists of a ground floor.',
         exampleSentence: 'Asin harong mo',
-        synonyms: 'Balay, Tahanan'
+        synonyms: 'Balay, Tahanan',
+        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
+
     ),
     Submission(
         id: '4',
@@ -55,9 +60,11 @@ class SubmissionViewModel extends ChangeNotifier {
         phonetics: '/tubig/',
         partOfSpeech: 'Noun',
         tagalog: 'Tubig',
-        definition: 'A colorless, transparent, odorless liquid that forms the seas, lakes, rivers.',
+        definition: 'A colorless, transparent, odorless liquid that forms the seas, lakes, riversss.',
         exampleSentence: 'Mag inom ka tubig',
-        synonyms: 'Lugod, Pakaon'
+        synonyms: 'Lugod, Pakaon',
+        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
+
     ),
     Submission(
         id: '5',
@@ -71,7 +78,9 @@ class SubmissionViewModel extends ChangeNotifier {
         tagalog: 'Pagmamahal',
         definition: 'An intense feeling of deep affection.',
         exampleSentence: 'Gugma ko saimo.',
-        synonyms: 'Lugod, Pakaon'
+        synonyms: 'Lugod, Pakaon',
+        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
+
     ),
   ];
 

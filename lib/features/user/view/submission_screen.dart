@@ -172,6 +172,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> with SingleTickerPr
                     'partOfSpeech': item.partOfSpeech,
                     'exampleSentence': item.exampleSentence,
                     'synonyms': item.synonyms,
+                    'etymology': item.etymology,
                     // Add any other fields your SubmissionDetailScreen or _onSubmissionTap expects from the map
                     // For example, if you had a 'dialect' field in Submission model:
                     // 'dialect': item.dialect ?? 'N/A',

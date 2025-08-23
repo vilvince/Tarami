@@ -12,6 +12,7 @@ class Submission {
   final String definition;
   final String exampleSentence;
   final String synonyms;
+  final String etymology;
 
 
   Submission({
@@ -27,5 +28,6 @@ class Submission {
     required this.definition,
     required this.exampleSentence,
     required this.synonyms,
+    required this.etymology,
   });
 }
