@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'login.dart'; // Ensure this import is correct
 import 'package:tarami_application/features/auth/veiwmodel/forgot_password_view_model.dart';
 
 class ForgotPasswordPage extends StatelessWidget {
@@ -7,297 +8,158 @@ class ForgotPasswordPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Recommendation: Manage emailController in the ViewModel
+    final emailController = TextEditingController();
+
     return ChangeNotifierProvider(
       create: (_) => ForgotPasswordViewModel(),
       child: Consumer<ForgotPasswordViewModel>(
-        builder: (context, vm, _) => Scaffold(
-          backgroundColor: Colors.white,
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
+        builder: (context, vm, child) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (vm.emailSent) {
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  backgroundColor: const Color(0xFF0B1E2D),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  content: Text(
+
+                    textAlign: TextAlign.center,
+                    // Recommendation: Use email from ViewModel (e.g., vm.lastUsedEmail)
+                      "Password reset email sent to ${emailController.text.trim()}", style: TextStyle(color: Colors.white, fontSize: 20),),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context); // close dialog
+                        vm.emailSent = false;   // Reset state
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const LoginPage()),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text("Ok", style: TextStyle(color: Colors.black, fontSize: 17)),
+                    ),
+                  ],
+                ),
+              );
+              // vm.emailSent = false; // Reset after showing dialog - MOVED
+            }
+          });
+
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: SafeArea(
+              child: Column( // Outer Column for Back Button and Content Area
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerLeft,
+                  Padding( // Padding for the back button
+                    padding: const EdgeInsets.only(top: 12.0, left: 12.0),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back, size: 28),
-                      onPressed: () {
-                        if (vm.passwordChanged) {
-                          vm.resetAll();
-                        } else if (vm.showResetPassword) {
-                          vm.showResetPassword = false;
-                        } else if (vm.codeSent) {
-                          vm.codeSent = false;
-                        } else {
-                          Navigator.pop(context);
-                        }
-                      },
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: vm.passwordChanged
-                          ? _PasswordChangedView()
-                          : (vm.showResetPassword
-                          ? _ResetPasswordView()
-                          : (vm.codeSent
-                          ? _CodeInputView()
-                          : _EmailInputView())),
+                  Expanded( // Content area takes remaining space
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0)
+                          .copyWith(top: 20), // Reduced top padding a bit, adjust as needed
+                      // --- FIX: Wrap inner Column with SingleChildScrollView ---
+                      child: SingleChildScrollView(
+                        child: Column(
+                          // Removed crossAxisAlignment and mainAxisAlignment if not strictly needed,
+                          // SingleChildScrollView will handle the size.
+                          // You can add mainAxisAlignment: MainAxisAlignment.center
+                          // if you want the content centered vertically when it doesn't overflow.
+                          children: [
+                            const SizedBox(height: 60), // Space from top or back button
+                            const Text(
+                              "Forgot Password?",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 32, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "Don’t worry, it happens!\nPlease enter email associated with your account.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 16, color: Colors.black54),
+                            ),
+                            const SizedBox(height: 32),
+                            const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text("Email", style: TextStyle(fontSize: 18)),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: emailController, // Link to ViewModel's controller
+                              cursorColor: Colors.black,
+                              style: const TextStyle(fontSize: 18),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: const BorderSide(
+                                    color: Colors.black,
+                                    width: 2.0,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 18,
+                                  horizontal: 14,
+                                ),
+                                errorText: vm.errorMessage,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Center(
+                              child: SizedBox(
+                                width: 200,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFFC845),
+                                    padding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(22),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    vm.resetPassword(emailController.text.trim());
+                                },
+                                  child: const Text(
+                                    "Send Reset Link",
+                                    style: TextStyle(
+                                        fontSize: 18, color: Colors.black),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20), // Add some padding at the bottom for scrolling
+                          ],
+                        ),
+                      ),
+                      // --- END OF FIX ---
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-class _EmailInputView extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final vm = Provider.of<ForgotPasswordViewModel>(context);
-    return Column(
-      children: [
-        const SizedBox(height: 120),
-        const Text(
-          "Forgot Password?",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          "Don’t worry It happens!\nPlease enter email associated with your account.",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.black54),
-        ),
-        const SizedBox(height: 32),
-        const Align(
-          alignment: Alignment.centerLeft,
-          child: Text("Email", style: TextStyle(fontSize: 18)),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: vm.emailController,
-          style: const TextStyle(fontSize: 18),
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding:
-            const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-          ),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: 200,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC845),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
-              ),
-            ),
-            onPressed: vm.sendCode,
-            child: const Text("Send Code",
-                style: TextStyle(fontSize: 18, color: Colors.black)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CodeInputView extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final vm = Provider.of<ForgotPasswordViewModel>(context);
-    return Column(
-      children: [
-        const SizedBox(height: 100),
-        const Text(
-          "Please check your email",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          "We’ve sent a code to ${vm.emailController.text.isNotEmpty ? vm.emailController.text : "email@gmail.com"}",
-          style: const TextStyle(fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 36),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: List.generate(4, (index) {
-            return Container(
-              width: 60,
-              height: 70,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 1.5),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: TextField(
-                controller: vm.codeControllers[index],
-                maxLength: 1,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 28),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  counterText: "",
-                ),
-              ),
-            );
-          }),
-        ),
-        const SizedBox(height: 32),
-        SizedBox(
-          width: 180,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC845),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-            onPressed: vm.verifyCode,
-            child: const Text("Verify",
-                style: TextStyle(fontSize: 18, color: Colors.black)),
-          ),
-        ),
-        const SizedBox(height: 12),
-        const Text("Resend code  5:00", style: TextStyle(fontSize: 16)),
-      ],
-    );
-  }
-}
-
-class _ResetPasswordView extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final vm = Provider.of<ForgotPasswordViewModel>(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 80),
-        const Center(
-          child: Column(
-            children: [
-              Text(
-                "Reset Password",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                "Please type something you will\nremember",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 40),
-        const Text("New Password", style: TextStyle(fontSize: 18)),
-        const SizedBox(height: 8),
-        TextField(
-          obscureText: vm.obscureNewPassword,
-          controller: vm.newPasswordController,
-          style: const TextStyle(fontSize: 18),
-          decoration: InputDecoration(
-            errorText: vm.newPasswordError, // show validation error
-            suffixIcon: IconButton(
-              icon: Icon(vm.obscureNewPassword
-                  ? Icons.visibility_off
-                  : Icons.visibility),
-              onPressed: vm.toggleObscureNewPassword,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        const SizedBox(height: 20),
-        const Text("Confirm Password", style: TextStyle(fontSize: 18)),
-        const SizedBox(height: 8),
-        TextField(
-          obscureText: vm.obscureConfirmPassword,
-          controller: vm.confirmPasswordController,
-          style: const TextStyle(fontSize: 18),
-          decoration: InputDecoration(
-            errorText: vm.confirmPasswordError, // show validation error
-            suffixIcon: IconButton(
-              icon: Icon(vm.obscureConfirmPassword
-                  ? Icons.visibility_off
-                  : Icons.visibility),
-              onPressed: vm.toggleObscureConfirmPassword,
-            ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        const SizedBox(height: 30),
-        Center(
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFC845),
-              padding:
-              const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
-              ),
-            ),
-            onPressed: vm.resetPassword,
-            child: const Text("Reset Password",
-                style: TextStyle(fontSize: 18, color: Colors.black)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PasswordChangedView extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final vm = Provider.of<ForgotPasswordViewModel>(context, listen: false);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const CircleAvatar(
-          radius: 100,
-          backgroundColor: Colors.black12,
-        ),
-        const SizedBox(height: 32),
-        const Text(
-          "Password Changed!",
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          "Your Password has been changed\nsuccessfully!",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 36),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFFC845),
-            padding:
-            const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-            vm.resetAll();
-          },
-          child: const Text("Reset Password",
-              style: TextStyle(fontSize: 18, color: Colors.black)),
-        ),
-      ],
-    );
-  }
-}

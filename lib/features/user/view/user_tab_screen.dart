@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:tarami_application/features/user/view/about_screen.dart';
 import 'package:tarami_application/features/user/view/favorite_screen.dart';
-import 'package:tarami_application/features/user/view/quiz_question_screen.dart';
 import 'package:tarami_application/features/user/view/profile_screen.dart';
 import 'package:tarami_application/features/user/view/quiz_start_screen.dart';
 import 'package:tarami_application/features/user/view/recent_screen.dart';
 import 'package:tarami_application/features/user/view/submission_screen.dart';
 import 'package:tarami_application/features/user/view/faqs_screen.dart';
 import 'package:tarami_application/features/auth/view/login.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserTabScreen extends StatefulWidget { // Changed to StatefulWidget
   const UserTabScreen({super.key});
@@ -20,26 +20,61 @@ class UserTabScreen extends StatefulWidget { // Changed to StatefulWidget
 
 class _UserTabScreenState extends State<UserTabScreen> { // State class
   // --- START OF LOGOUT LOGIC ---
+// --- inside _UserTabScreenState ---
   Future<void> _performLogout() async {
-    // 1. Add your actual logout logic here:
-    //    - Clear any stored user tokens (e.g., from SharedPreferences, secure storage).
-    //    - Reset any user-specific state in your ViewModels or services.
-    //    - Example:
-    //      final prefs = await SharedPreferences.getInstance();
-    //      await prefs.remove('userToken');
-    //      Provider.of<AuthViewModel>(context, listen: false).clearUserData(); // If you have an AuthViewModel
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0B1E2D),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
 
-    print('User logged out. Add actual token/session clearing logic here.');
+        content: const Text("Are you sure you want to log out?",
+          style: TextStyle(color: Colors.white, fontSize: 17),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false), // cancel
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text("Cancel", style: TextStyle(color: Colors.black, fontSize: 17)),
+          ),
 
-    // 2. Navigate to the LoginScreen and remove all previous routes.
-    //    This prevents the user from pressing 'back' to return to the UserTabScreen.
-    if (mounted) { // Check if the widget is still in the tree
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const LoginPage()), // Navigate to LoginScreen
-            (Route<dynamic> route) => false, // This predicate removes all routes
-      );
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true), // confirm
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text("Yes", style: TextStyle(color: Colors.white, fontSize: 17)),
+          ),
+        ],
+      ),
+    );
+
+    // If the user confirmed
+    if (shouldLogout == true) {
+      try {
+        await FirebaseAuth.instance.signOut();
+
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+                (route) => false,
+          );
+        }
+      } catch (e) {
+      }
     }
   }
+
   // --
 
   @override
@@ -282,7 +317,6 @@ class _UserTabScreenState extends State<UserTabScreen> { // State class
                     trailing: const Icon(Icons.arrow_forward_ios,
                         size: 16, color: Colors.red),
                     onTap: () {
-                      // TODO: Add your logout logic
                       _performLogout();
                     },
                   ),

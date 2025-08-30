@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tarami_application/widgets/main_scaffold.dart';
 import 'package:tarami_application/features/auth/veiwmodel/signup_view_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 
 class SignUpPage extends StatelessWidget {
@@ -155,8 +156,9 @@ class SignUpPage extends StatelessWidget {
                                           borderRadius: BorderRadius.circular(22),
                                         ),
                                       ),
-                                      onPressed: () {
-                                        if (vm.validate()) {
+                                      onPressed: vm.isLoading ? null : () async {
+                                        final user = await vm.signUp(context);
+                                        if (user != null) {
                                           Navigator.pushReplacement(
                                             context,
                                             MaterialPageRoute(

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "719315807707",
+    "firebase_url": "https://tarami-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "tarami",
+    "storage_bucket": "tarami.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:719315807707:android:725026a72185509ef60bfe",
+        "android_client_info": {
+          "package_name": "com.example.tarami_application"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrVT9vguPjcMtloCohb_5qY3piOwSS75I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

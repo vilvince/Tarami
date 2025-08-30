@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tarami_application/core/services/auth_service.dart';
 
 class SignUpViewModel extends ChangeNotifier {
-  // Controllers
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
-  // Errors
+  bool obscurePassword = true;
+  bool obscureConfirmPassword = true;
+  bool agreeToTerms = false;
+  bool _isLoading = false;
+
   String? emailError;
   String? passwordError;
   String? confirmPasswordError;
 
-  // Obscure text states
-  bool obscurePassword = true;
-  bool obscureConfirmPassword = true;
+  final AuthService _authService = AuthService();
 
-  // Terms agreement
-  bool agreeToTerms = false;
+  bool get isLoading => _isLoading;
 
   // Toggle password visibility
   void togglePasswordVisibility() {
@@ -29,13 +31,12 @@ class SignUpViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Set agreement to terms
   void setAgreeToTerms(bool value) {
     agreeToTerms = value;
     notifyListeners();
   }
 
-  // Show Terms and Conditions dialog with full text
+  // Show Terms & Conditions
   void showTermsDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -84,41 +85,134 @@ class SignUpViewModel extends ChangeNotifier {
     );
   }
 
-  // Validate form
-  bool validate() {
-    bool isValid = true;
+  // Handle Sign Up
+  Future<User?> signUp(BuildContext context) async {
+    if (_isLoading) return null;
 
-    // Reset previous errors
+    _isLoading = true;
     emailError = null;
     passwordError = null;
     confirmPasswordError = null;
+    notifyListeners();
 
-    final email = emailController.text.trim();
+    // Validation
+    if (emailController.text.isEmpty) {
+      emailError = "Email is required";
+    }
+
     final password = passwordController.text;
     final confirmPassword = confirmPasswordController.text;
+    // Password Strength Check
+    final passwordRegex = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$');
 
-    if (email.isEmpty || !email.contains('@')) {
-      emailError = 'Please enter a valid email';
-      isValid = false;
+    if (password.isEmpty) {
+      passwordError = "Password is required";
+    } else if (!passwordRegex.hasMatch(password)) {
+      passwordError = "Password must be at least 8 characters, include \nuppercase, lowercase, number, and \nspecial character";
+    } else if (password.split('').every((char) => char == password[0])) {
+      // Rejects if all characters are the same
+      passwordError = "Password cannot be repetitive characters only";
     }
-
-    // Password validation: minimum 8 characters, at least one letter, one number, one special character
-    final passwordRegex = RegExp(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&^_-])[A-Za-z\d@$!%*#?&^_-]{8,}$');
-    if (!passwordRegex.hasMatch(password)) {
-      passwordError = 'Password must be at least 8 characters\nand include letters, numbers, and special characters';
-      isValid = false;
+    if (confirmPasswordController.text != passwordController.text) {
+      confirmPasswordError = "Passwords do not match";
     }
-
-    if (confirmPassword != password) {
-      confirmPasswordError = 'Passwords do not match';
-      isValid = false;
-    }
-
     if (!agreeToTerms) {
-      isValid = false;
+      _isLoading = false;
+      notifyListeners();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You must agree to the Terms & Conditions")),
+      );
+      return null;
     }
 
-    notifyListeners();
-    return isValid;
+    // If errors exist, stop
+    if (emailError != null || passwordError != null || confirmPasswordError != null) {
+      _isLoading = false;
+      notifyListeners();
+      return null;
+    }
+
+    try {
+      // Call the AuthService to create the user
+      await _authService.signUp(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      // Wait a moment for Firebase to fully process the user creation
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Get the current user directly from FirebaseAuth instance
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user != null) {
+        _isLoading = false;
+        notifyListeners();
+        return user;
+      } else {
+        throw Exception("User creation failed - no user found");
+      }
+
+    } on FirebaseAuthException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+
+      String errorMessage;
+      switch (e.code) {
+        case 'email-already-in-use':
+          errorMessage = 'This email is already registered. Try signing in instead.';
+          break;
+        case 'weak-password':
+          errorMessage = 'Password is too weak. Please choose a stronger password.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        case 'operation-not-allowed':
+          errorMessage = 'Email/password accounts are not enabled.';
+          break;
+        default:
+          errorMessage = e.message ?? "Sign Up failed";
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          action: e.code == 'email-already-in-use'
+              ? SnackBarAction(
+            label: 'Sign In',
+            textColor: Colors.white,
+            onPressed: () => Navigator.pop(context),
+          )
+              : null,
+        ),
+      );
+      return null;
+
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+
+      // Even if there's a general exception, check if user was actually created
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // User was created successfully despite the exception
+        return user;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("An unexpected error occurred: ${e.toString()}")),
+      );
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
   }
 }
