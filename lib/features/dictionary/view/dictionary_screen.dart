@@ -405,27 +405,8 @@ class Dictionary extends StatelessWidget {
             ),
           ),
 
-          // Etymology (NO CARD)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Etymology",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const Divider(thickness: 1),
-                const SizedBox(height: 8),
-                Text(
-                  viewModel.getTranslationEtymology(dialectTranslation) ??
-                      'No etymology available for this translation.',
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
+
+
         ],
       ),
     );
