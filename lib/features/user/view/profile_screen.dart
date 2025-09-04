@@ -2,8 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/profile_viewmodel.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => Provider.of<ProfileViewModel>(context, listen: false). loadProfile());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -151,14 +162,9 @@ class ProfileScreen extends StatelessWidget {
               viewModel.emailController,
               'Email Address',
               keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter an email address';
-                } else if (!RegExp(r'^[\w\.-]+@[\w\.-]+\.\w+$').hasMatch(value)) {
-                  return 'Please enter a valid email address';
-                }
-                return null;
-              },
+              validator: (value) =>
+                  value == null || value.isEmpty ? 'Please enter your email address' : null,
+              enabled: false,
             ),
 
             const SizedBox(height: 30),
@@ -182,8 +188,6 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
-
-
 
   Widget _buildProfileDetails(ProfileViewModel viewModel) {
     Map<String, String> profileMap = {
@@ -216,6 +220,7 @@ class ProfileScreen extends StatelessWidget {
       String label, {
         TextInputType keyboardType = TextInputType.text,
         String? Function(String?)? validator,
+        bool enabled = true,
       }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),

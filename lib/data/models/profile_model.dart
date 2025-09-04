@@ -17,22 +17,22 @@ class Profile {
 
   factory Profile.fromJson(Map<String, dynamic> json) {
     return Profile(
-      firstName: json['firstName'] ?? '',
-      lastName: json['lastName'] ?? '',
+      firstName: json['first_name'] ?? '',
+      lastName: json['last_name'] ?? '',
       gender: json['gender'] ?? '',
-      birthDate: json['birthDate'] ?? '',
-      contact: json['contact'] ?? '',
+      birthDate: json['birth_date'] ?? '',
+      contact: json['contact_number'] ?? '',
       email: json['email'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'firstName': firstName,
-      'lastName': lastName,
+      'first_name': firstName,
+      'last_name': lastName,
       'gender': gender,
-      'birthDate': birthDate,
-      'contact': contact,
+      'birth_date': birthDate,
+      'contact_number': contact,
       'email': email,
     };
   }

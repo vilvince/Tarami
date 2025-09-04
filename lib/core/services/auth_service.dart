@@ -1,10 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
 
 class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   User? get currentUser => firebaseAuth.currentUser;
 
@@ -25,11 +27,24 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // Just create the user, don't return the credential to avoid type casting issues
-      await firebaseAuth.createUserWithEmailAndPassword(
-          email: email,
-          password: password
-      );
+      UserCredential userCredential = await firebaseAuth
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      User? user = userCredential.user;
+
+      // Jut create the user, don't return the credential to avoid type casting issues
+      // ✅ Immediately create Firestore doc for the new user
+      if (user != null) {
+        await firestore.collection("users").doc(user.uid).set({
+          'email': user.email,
+          'first_name': '',
+          'last_name': '',
+          'gender': '',
+          'birth_date': '',
+          'contact_number': '',
+          'created_at': FieldValue.serverTimestamp(), // optional
+        });
+      }
     } catch (e) {
       // Re-throw the exception to be handled by the calling method
       rethrow;
