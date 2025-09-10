@@ -1,88 +1,254 @@
 import 'package:flutter/foundation.dart';
+import 'package:tarami_application/features/dictionary/model/dictionary_model.dart';
+import 'package:tarami_application/core/services/dictionary_services.dart';
+
 
 class DictionaryViewModel extends ChangeNotifier {
+  final DictionaryService _dictionaryService = DictionaryService();
+
+  // Dialect constants
   final List<String> _dialects = [
     'Central Bikol',
     'West Miraya',
     'East Miraya',
     'Libon Bikol'
   ];
+
+  // State variables
   int _selectedDialectIndex = 0;
-  String? _selectedWord;
-
-  final Map<String, List<String>> _words = {
-    'Central Bikol': [
-      'Aback', 'Banana', 'Cat', 'Dog', 'Elephant',
-      'Fish', 'Giraffe', 'House', 'Ice', 'Juice',
-      'Kite', 'Lion', 'Monkey', 'Nest', 'Orange',
-      'Pencil', 'Queen', 'Rabbit', 'Sun', 'Tiger',
-      'Umbrella', 'Violin', 'Water', 'Xylophone', 'Yogurt', 'Zebra'
-    ],
-    'West Miraya': ['Agom', 'Balay', 'Dakul', 'Gadan', 'Huron'],
-    'East Miraya': ['Abaw', 'Basura', 'Gikan', 'Irog', 'Kalayo'],
-    'Libon Bikol': ['Agingay', 'Bayani', 'Daraga', 'Ilaw', 'Kabalo'],
-  };
-
-  final Map<String, Map<String, String>> _translations = {
-    'Aback': {
-      'Central Bikol': 'Nakigkig',
-      'West Miraya': 'Nagbulag',
-      'East Miraya': 'Nagulat',
-      'Libon Bikol': 'Nasorpresa',
-    },
-  };
-
-  final Map<String, Map<String, String>> _sampleSentences = {
-    'Aback': {
-      'Central Bikol': 'Nag-abot si Juan na nakigkig sa sorpresa.',
-      'West Miraya': 'Si Pedro nagbagas sa huring balita.',
-      'East Miraya': 'Nagbulag si Maria sa pag-abot ninda.',
-      'Libon Bikol': 'Nagsopresa siya sa regalo.',
-    },
-  };
-
-  final Map<String, List<String>> _synonyms = {
-    'Aback': ['Surprised', 'Startled'],
-    'Surprised': ['Aback', 'Astonished'],
-    'Startled': ['Aback'],
-  };
-
-  final Map<String, List<String>> _antonyms = {
-    'Aback': ['Calm', 'Unmoved'],
-    'Surprised': ['Calm', 'Indifferent'],
-    'Startled': ['Calm'],
-  };
-
-
+  DictionaryEntry? _selectedWordEntry;
+  List<DictionaryEntry> _allWords = [];
+  List<DictionaryEntry> _searchResults = [];
+  bool _isLoading = false;
+  bool _isSearching = false;
+  String _searchQuery = '';
+  String? _errorMessage;
 
   // Getters
   List<String> get dialects => _dialects;
   int get selectedDialectIndex => _selectedDialectIndex;
-  String? get selectedWord => _selectedWord;
-
+  DictionaryEntry? get selectedWord => _selectedWordEntry;
   String get selectedDialect => _dialects[_selectedDialectIndex];
-  List<String> get currentWordList =>
-      List<String>.from(_words[selectedDialect] ?? [])..sort();
+  List<DictionaryEntry> get allWords => _allWords;
+  List<DictionaryEntry> get searchResults => _searchResults;
+  bool get isLoading => _isLoading;
+  bool get isSearching => _isSearching;
+  String get searchQuery => _searchQuery;
+  String? get errorMessage => _errorMessage;
 
-  Map<String, String>? getTranslation(String word) => _translations[word];
-  String? getDialectTranslation(String word) =>
-      _translations[word]?[selectedDialect];
+  // Current word list for UI (returns word strings)
+  List<String> get currentWordList {
+    final words = _searchQuery.isNotEmpty ? _searchResults : _allWords;
+    return words.map((entry) => entry.word).toList()..sort();
+  }
 
-  String? getSampleSentence(String word) =>
-      _sampleSentences[word]?[selectedDialect];
+  // Initialize the dictionary
+  Future<void> initialize() async {
+    print('Initializing Dictionary ViewModel...');
+    await loadAllWords();
+  }
 
-  List<String> getSynonyms(String word) => _synonyms[word] ?? [];
-  List<String> getAntonyms(String word) => _antonyms[word] ?? [];
+  // Load all words from Firebase
+  Future<void> loadAllWords() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
+    try {
+      print('Loading words from Firebase...');
+      _allWords = await _dictionaryService.getAllWords();
+      print('Loaded ${_allWords.length} words successfully');
+    } catch (e) {
+      _errorMessage = 'Failed to load dictionary: $e';
+      print('Error loading words: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
-  // Actions
+  // Search for words
+  Future<void> searchWords(String query) async {
+    _searchQuery = query.trim();
+
+    if (_searchQuery.isEmpty) {
+      _searchResults = [];
+      notifyListeners();
+      return;
+    }
+
+    _isSearching = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      print('Searching for: $_searchQuery');
+      _searchResults = await _dictionaryService.searchWords(_searchQuery);
+      print('Found ${_searchResults.length} results');
+    } catch (e) {
+      _errorMessage = 'Search failed: $e';
+      print('Error searching: $e');
+    } finally {
+      _isSearching = false;
+      notifyListeners();
+    }
+  }
+
+  // Select a word to view details
+  void selectWord(String? wordName) {
+    if (wordName == null) {
+      _selectedWordEntry = null;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      // Find the word in current results
+      final words = _searchQuery.isNotEmpty ? _searchResults : _allWords;
+      _selectedWordEntry = words.firstWhere(
+            (entry) => entry.word.toLowerCase() == wordName.toLowerCase(),
+      );
+      print('Selected word: ${_selectedWordEntry?.word}');
+    } catch (e) {
+      print('Error selecting word: $e');
+      _selectedWordEntry = null;
+    }
+
+    notifyListeners();
+  }
+
+  // Select dialect tab
   void selectDialect(int index) {
-    _selectedDialectIndex = index;
+    if (index >= 0 && index < _dialects.length) {
+      _selectedDialectIndex = index;
+      notifyListeners();
+    }
+  }
+
+  // Helper methods for word details (these match your existing UI calls)
+
+  String? getDialectTranslation(String word) {
+    if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
+      return _selectedWordEntry?.getTranslationForDialect(_getDialectKey(selectedDialect))
+          ?? 'No translation available';
+    }
+    return null;
+  }
+
+
+  List<String> getSynonyms(String word) {
+    if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
+      final rawSynonyms = _selectedWordEntry?.synonyms ?? [];
+      final cleaned = rawSynonyms
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toSet() // remove duplicates
+          .toList();
+      return cleaned;
+    }
+    return [];
+  }
+
+
+
+  // Additional helper methods for your UI
+  String getPhoneticsForDialect(String word) {
+    // If no word is selected, fallback
+    if (_selectedWordEntry?.word.toLowerCase() != word.toLowerCase()) {
+      return "/${word.toLowerCase()}/";
+    }
+
+    // Normalize dialect key (important: UI shows "Central Bikol" but DB is "central_bikol")
+    final dialectKey = _getDialectKey(selectedDialect);
+
+    // Fetch phonetics from model
+    final phonetics = _selectedWordEntry?.getPhoneticsForDialect(dialectKey);
+
+    // If phonetics exist and not empty, return them; else fallback
+    return (phonetics != null && phonetics.trim().isNotEmpty)
+        ? phonetics
+        : "/${word.toLowerCase()}/";
+  }
+
+
+  String? getPartOfSpeech(String word) {
+    if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
+      return _selectedWordEntry?.partOfSpeech ?? 'Unknown';
+    }
+    return null;
+  }
+
+  String? getDefinition(String word) {
+    if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
+      return _selectedWordEntry?.definition ?? 'Definition not available';
+    }
+    return null;
+  }
+
+  String? getTagalogTranslation(String word) {
+    if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
+      return _selectedWordEntry?.tagalog ?? 'Not available';
+    }
+    return null;
+  }
+
+  String getSampleSentenceInEnglish(String word) {
+    if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
+      final sentence = _selectedWordEntry?.exampleSentence;
+      if (sentence != null && sentence.trim().isNotEmpty) {
+        return sentence;
+      }
+    }
+    return 'No sample sentence available';
+  }
+
+  String getSampleSentence(String word) {
+    if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
+      final sentence = _selectedWordEntry?.getSampleSentenceForDialect(
+        _getDialectKey(selectedDialect),
+      );
+      if (sentence != null && sentence.trim().isNotEmpty) {
+        return sentence;
+      }
+    }
+    return 'No sample sentence available';
+  }
+
+
+
+  // Convert display dialect name to database key
+  String _getDialectKey(String dialectName) {
+    switch (dialectName) {
+      case 'Central Bikol':
+        return 'central_bikol';
+      case 'West Miraya':
+        return 'west_miraya';
+      case 'East Miraya':
+        return 'east_miraya';
+      case 'Libon Bikol':
+        return 'libon_bikol';
+      default:
+        return 'central_bikol';
+    }
+  }
+
+  // Clear error messages
+  void clearError() {
+    _errorMessage = null;
     notifyListeners();
   }
 
-  void selectWord(String? word) {
-    _selectedWord = word;
-    notifyListeners();
+  // Refresh data
+  Future<void> refresh() async {
+    await loadAllWords();
   }
+
+  final Set<String> audioWords = {
+    "breeze", // test word with audio
+  };
+
+  bool hasAudio(String word) {
+    return audioWords.contains(word.toLowerCase());
+  }
+
 }

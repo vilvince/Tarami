@@ -43,13 +43,25 @@ class TriviaScreenPage extends StatelessWidget {
                           topRight: Radius.circular(32),
                         ),
                       ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: vm.triviaItems
-                              .map((text) => _buildTriviaCard(text))
-                              .toList(),
-                        ),
-                      ),
+                      child: Consumer <TriviaViewModel>(
+                        builder: (context, vm, _){
+                          if (vm.isLoading){
+                            return const Center(child: CircularProgressIndicator());
+                          }
+
+                          if (vm.triviaList.isEmpty) {
+                            return const Center(child: Text("No trivia available"));
+                          }
+
+                          return SingleChildScrollView(
+                              child: Column(
+                                children: vm.triviaList
+                                    .map((trivia) => _buildTriviaCard(trivia.sentence))
+                                    .toList(),
+                              ),
+                          );
+                        }
+                      )
                     ),
                   ),
                 ],
@@ -61,7 +73,7 @@ class TriviaScreenPage extends StatelessWidget {
     );
   }
 
-  static Widget _buildTriviaCard(InlineSpan text) {
+  static Widget _buildTriviaCard(String text) {
     return Center(
       child: SizedBox(
         width: 450, // 🔹 fixed width para consistent sa lahat ng device
@@ -72,11 +84,12 @@ class TriviaScreenPage extends StatelessWidget {
             color: const Color(0xFF1C1F26),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: RichText(
-            text: text,
+          child: Text(
+            text,
             textAlign: TextAlign.justify,
-          ),
+            style: const TextStyle(color: Colors.white),
         ),
+      ),
       ),
     );
   }

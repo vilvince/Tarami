@@ -1,70 +1,31 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class TriviaModel {
-  final String category;
-  final String text;
-  final List<ExampleWord>? examples;
+  final String id;
+  final String sentence;
+  final DateTime dateAdded;
 
   TriviaModel({
-    required this.category,
-    required this.text,
-    this.examples,
+    required this.id,
+    required this.sentence,
+    required this.dateAdded,
   });
 
-  factory TriviaModel.fromJson(Map<String, dynamic> json) {
+  factory TriviaModel.fromFirestore(Map<String, dynamic> json, String id) {
     return TriviaModel(
-      category: json['category'] ?? '',
-      text: json['text'] ?? '',
-      examples: json['examples'] != null
-          ? List<ExampleWord>.from(
-          (json['examples'] as List).map((e) => ExampleWord.fromJson(e)))
-          : null,
+     id: id,
+      sentence: json['sentence'] ?? '',
+      dateAdded: (json['date_added'] as Timestamp).toDate(),
     );
+
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'category': category,
-      'text': text,
-      'examples': examples?.map((e) => e.toJson()).toList(),
+      'sentence': sentence,
+      'date_added': dateAdded,
     };
   }
 
-  TriviaModel copyWith({
-    String? category,
-    String? text,
-    List<ExampleWord>? examples,
-  }) {
-    return TriviaModel(
-      category: category ?? this.category,
-      text: text ?? this.text,
-      examples: examples ?? this.examples,
-    );
-  }
-}
 
-class ExampleWord {
-  final String word;
-  final String meaning;
-
-  ExampleWord({required this.word, required this.meaning});
-
-  factory ExampleWord.fromJson(Map<String, dynamic> json) {
-    return ExampleWord(
-      word: json['word'] ?? '',
-      meaning: json['meaning'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'word': word,
-      'meaning': meaning,
-    };
-  }
-
-  ExampleWord copyWith({String? word, String? meaning}) {
-    return ExampleWord(
-      word: word ?? this.word,
-      meaning: meaning ?? this.meaning,
-    );
-  }
 }

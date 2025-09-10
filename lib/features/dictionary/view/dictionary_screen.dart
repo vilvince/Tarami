@@ -2,8 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/dictionary_view_model.dart';
 
-class Dictionary extends StatelessWidget {
+class Dictionary extends StatefulWidget {
   const Dictionary({super.key});
+
+  @override
+  State<Dictionary> createState() => _DictionaryState();
+  }
+
+
+class _DictionaryState extends State<Dictionary> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize dictionary data when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DictionaryViewModel>().initialize();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +64,35 @@ class Dictionary extends StatelessWidget {
       ),
     );
   }
+  Widget _buildSynonyms(DictionaryViewModel viewModel, String word) {
+    final synonymsList = viewModel.getSynonyms(word);
+
+    if (synonymsList.isEmpty) {
+      return const Text(
+        "No synonyms available",
+        style: TextStyle(fontSize: 16, color: Colors.grey),
+      );
+    }
+
+    return Wrap(
+      spacing: 6.0,
+      runSpacing: 4.0,
+      children: synonymsList.map((syn) {
+        return GestureDetector(
+          onTap: () => viewModel.selectWord(syn),
+          child: Text(
+            syn,
+            style: const TextStyle(
+              fontSize: 18,
+              color: Colors.blueAccent,
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+
 
   Widget _buildSearchBar() {
     return Container(
@@ -74,6 +118,9 @@ class Dictionary extends StatelessWidget {
             child: TextField(
               textAlign: TextAlign.left,
               textAlignVertical: TextAlignVertical.center,
+              onChanged: (query){
+                context.read<DictionaryViewModel>().searchWords(query);
+              },
               decoration: const InputDecoration(
                 hintText: 'Search...',
                 hintStyle: TextStyle(
@@ -92,7 +139,6 @@ class Dictionary extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildPlainTextDialectRow(DictionaryViewModel viewModel) {
     return Padding(
@@ -122,8 +168,57 @@ class Dictionary extends StatelessWidget {
     );
   }
 
-
   Widget _buildWordList(DictionaryViewModel viewModel) {
+    if (viewModel.isLoading || viewModel.isSearching) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading dictionary...'),
+          ],
+        ),
+      );
+    }
+    if (viewModel.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error: ${viewModel.errorMessage}'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                viewModel.clearError();
+                viewModel.refresh();
+              },
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      );
+    }
+        if (viewModel.currentWordList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.search_off, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text(
+              viewModel.searchQuery.isNotEmpty
+                  ? 'No words found for "${viewModel.searchQuery}"'
+                  : 'No words available',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
       itemCount: viewModel.currentWordList.length,
       itemBuilder: (context, index) {
@@ -142,16 +237,19 @@ class Dictionary extends StatelessWidget {
     );
   }
 
-
   Widget _buildDetailView(DictionaryViewModel viewModel) {
-    final word = viewModel.selectedWord!;
-    final dialectTranslation = viewModel.getDialectTranslation(word) ?? word;
-    final pronunciation = "/${word.toLowerCase()}/";
-    final tagalog = "Nagulat";
-    final definitions = [
-      "By surprise; unexpectedly startled or confused.",
-      "(Nautical) With the sail pressed backward against the mast by the wind."
-    ];
+    final word = viewModel.selectedWord!.word;
+    final rawTranslation = viewModel.getDialectTranslation(word);
+    final dialectTranslation = (rawTranslation == null || rawTranslation.trim().isEmpty)
+        ? "No translation available"
+        : rawTranslation;
+    final phonetics = viewModel.getPhoneticsForDialect(word);
+    final tagalog = viewModel.getTagalogTranslation(word) ?? "Not available";
+    final definition = viewModel.getDefinition(word) ?? "Definition not available";
+    final partOfSpeech = viewModel.getPartOfSpeech(word) ?? "Unknown";
+    final sampleInEnglish = viewModel.getSampleSentenceInEnglish(word);
+    final sampleInDialect = viewModel.getSampleSentence(word);
+
 
     return SingleChildScrollView(
       child: Column(
@@ -179,13 +277,6 @@ class Dictionary extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          pronunciation,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -212,8 +303,8 @@ class Dictionary extends StatelessWidget {
                     fontSize: 18,
                   ),
                 ),
-                const Text(
-                  "Noun",
+                 Text(
+                  partOfSpeech,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -253,7 +344,7 @@ class Dictionary extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              pronunciation,
+                              phonetics.isNotEmpty ? phonetics : "/${word.toLowerCase()}/",
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontStyle: FontStyle.italic,
@@ -262,14 +353,15 @@ class Dictionary extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Transform.translate(
-                        offset: const Offset(-35, -15),
-                        child: const Icon(
-                          Icons.volume_up_outlined,
-                          size: 28,
-                          color: Colors.black,
+                      if (viewModel.hasAudio(word)) // 👈 show only if audio exists
+                        Transform.translate(
+                          offset: const Offset(-35, -15),
+                          child: const Icon(
+                            Icons.volume_up_outlined,
+                            size: 28,
+                            color: Colors.black,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ],
@@ -292,15 +384,9 @@ class Dictionary extends StatelessWidget {
                   ),
                   const Divider(thickness: 1),
                   const SizedBox(height: 8),
-                  ...List.generate(
-                    definitions.length,
-                        (index) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        "${index + 1}. ${definitions[index]}",
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                    ),
+                  Text(
+                    definition,
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ],
               ),
@@ -322,90 +408,69 @@ class Dictionary extends StatelessWidget {
                   ),
                   const Divider(thickness: 1),
                   const SizedBox(height: 8),
-                  Text(
-                    viewModel.getSampleSentence(word) ??
-                        'No sample sentence available.',
-                    style: const TextStyle(fontSize: 18),
+                  RichText(
+                    text: TextSpan(
+                      // This is the BASE style for all text in this RichText.
+                      // It should NOT contain fontWeight if you want children to override it easily.
+                      // Or, if it does, ensure it's a "normal" weight that bold can override.
+                      style: DefaultTextStyle.of(context).style.copyWith( // Inherit default text style
+                        fontSize: 18,
+                        color: Colors.black, // Or your desired default color for this section
+                      ),
+                      children: <TextSpan>[
+                        const TextSpan(
+                          text: 'English',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            // No need to repeat fontSize or color if inherited correctly
+                          ),
+                        ),
+                        TextSpan(text: ' : $sampleInEnglish'), // Inherits base style (normal weight)
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 11),
+                  RichText(
+                    text: TextSpan(
+                      style: DefaultTextStyle.of(context).style.copyWith(
+                        fontSize: 18,
+                        color: Colors.black,
+                      ),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: viewModel.selectedDialect,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextSpan(text: ': $sampleInDialect'),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 20),
+          // Sample Sentence Card
 
-          // Synonyms & Antonyms
+          // Synonyms
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Synonyms & Antonyms",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  "Synonyms",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Divider(thickness: 1),
                 const SizedBox(height: 8),
+                _buildSynonyms(viewModel, word),
 
-                // Synonyms
-                if (viewModel.getSynonyms(word).isNotEmpty) ...[
-                  const Text(
-                    "Synonyms",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    children: viewModel.getSynonyms(word).map((syn) {
-                      return GestureDetector(
-                        onTap: () => viewModel.selectWord(syn),
-                        child: Text(
-                          syn +
-                              (viewModel.getSynonyms(word).last != syn
-                                  ? ", "
-                                  : ""),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.blueAccent,
-                            decoration: TextDecoration.none,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // Antonyms
-                if (viewModel.getAntonyms(word).isNotEmpty) ...[
-                  const Text(
-                    "Antonyms",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    children: viewModel.getAntonyms(word).map((ant) {
-                      return GestureDetector(
-                        onTap: () => viewModel.selectWord(ant),
-                        child: Text(
-                          ant +
-                              (viewModel.getAntonyms(word).last != ant
-                                  ? ", "
-                                  : ""),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: Colors.blueAccent,
-                            decoration: TextDecoration.none,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 12),
-                ],
               ],
             ),
           ),
-
-
 
         ],
       ),
