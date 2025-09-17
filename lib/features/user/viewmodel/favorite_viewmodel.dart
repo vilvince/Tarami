@@ -1,61 +1,158 @@
 import 'package:flutter/material.dart';
-import 'package:tarami_application/data/models/favorite_model.dart'; // Adjust import path
+import 'package:tarami_application/data/models/favorite_model.dart';
+import 'package:tarami_application/core/services/user_activity_servicess.dart';
+
 
 class FavoriteViewModel extends ChangeNotifier {
-  // Using a Set can be good if you want to ensure no duplicate words by default,
-  // but List is fine if your logic already handles this or if order matters strictly
-  // and duplicates are allowed (though for favorite words, duplicates are unlikely desired).
-  // Let's stick to List<FavoriteItem> to map closer to your original List<String>.
-  final List<FavoriteItem> _favoriteItems = [
-    // Initial dummy data, similar to your original favoriteWords
-    FavoriteItem(word: 'apple'),
-    FavoriteItem(word: 'banana'),
-    FavoriteItem(word: 'mango'),
-    FavoriteItem(word: 'pineapple'),
-    FavoriteItem(word: 'orange'),
-    FavoriteItem(word: 'strawberry'),
-    FavoriteItem(word: 'grape'),
-    FavoriteItem(word: 'watermelon'),
-    FavoriteItem(word: 'melon'),
-    FavoriteItem(word: 'sit'),
-  ];
+  final UserActivityService _userActivityService = UserActivityService();
 
-  List<FavoriteItem> get favoriteItems => List.unmodifiable(_favoriteItems); // Provide an unmodifiable view
+  List<FavoriteItem> _favoriteItems = [];
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  // In a real app, you'd likely load favorites from persistence (e.g., SharedPreferences, SQLite)
-  // in the constructor or an init method.
+  // Getters
+  List<FavoriteItem> get favoriteItems => List.unmodifiable(_favoriteItems);
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
-  void addFavorite(String word) {
-    // Prevent adding duplicates if the word already exists
-    if (!_favoriteItems.any((item) => item.word == word)) {
-      _favoriteItems.add(FavoriteItem(word: word));
-      notifyListeners(); // Notify UI to rebuild
-      // In a real app, also save to persistence here
-    }
+  // Initialize and load favorite words from Firebase
+  Future<void> initialize() async {
+    await loadFavoriteWords();
   }
 
-  void removeFavorite(FavoriteItem itemToRemove) {
-    _favoriteItems.remove(itemToRemove);
+  // Load favorite words from Firebase
+  Future<void> loadFavoriteWords() async {
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
-    // In a real app, also update persistence here
-  }
 
-  void removeFavoriteByIndex(int index) {
-    if (index >= 0 && index < _favoriteItems.length) {
-      _favoriteItems.removeAt(index);
+    try {
+      // Get favorite words from Firebase
+      final favoriteWords = await _userActivityService.getFavoriteWords();
+
+      // Convert to FavoriteItem objects
+      _favoriteItems = favoriteWords.map((word) => FavoriteItem(word: word)).toList();
+
+      print('Loaded ${_favoriteItems.length} favorite words from Firebase');
+    } catch (e) {
+      _errorMessage = 'Failed to load favorite words: $e';
+      print('Error loading favorite words: $e');
+    } finally {
+      _isLoading = false;
       notifyListeners();
-      // In a real app, also update persistence here
     }
   }
 
-  void clearAllFavorites() {
-    _favoriteItems.clear();
-    notifyListeners();
-    // In a real app, also update persistence here
+  // Add favorite word (called from DictionaryViewModel)
+  Future<void> addFavorite(String word) async {
+    try {
+      // Check if word already exists to prevent duplicates
+      if (!_favoriteItems.any((item) => item.word.toLowerCase() == word.toLowerCase())) {
+        _favoriteItems.insert(0, FavoriteItem(word: word));
+        notifyListeners();
+
+        // Then save to Firebase (doesn't block UI)
+        await _userActivityService.addToFavorites(word);
+
+        print('Added "$word" to favorites');
+      }
+    } catch (e) {
+      print('Error adding favorite word: $e');
+    }
   }
 
-  // Example of checking if a word is already a favorite
+  // Remove favorite by item
+  Future<void> removeFavorite(FavoriteItem itemToRemove) async {
+    try {
+      _favoriteItems.remove(itemToRemove);
+      notifyListeners();
+
+      // Then remove from Firebase
+      await _userActivityService.removeFromFavorites(itemToRemove.word);
+
+      print('Removed "${itemToRemove.word}" from favorites');
+    } catch (e) {
+      print('Error removing favorite word: $e');
+    }
+  }
+
+  // Remove favorite by index (for your existing UI)
+  Future<void> removeFavoriteByIndex(int index) async {
+    if (index >= 0 && index < _favoriteItems.length) {
+      final itemToRemove = _favoriteItems[index];
+      await removeFavorite(itemToRemove);
+    }
+  }
+
+  // Clear all favorite words
+  Future<void> clearAllFavorites() async {
+    try {
+      // 🔥 Clear local list first
+      _favoriteItems.clear();
+      notifyListeners();
+
+      // Then clear from Firebase
+      await _userActivityService.clearAllFavorites();
+
+      print('Cleared all favorite words');
+    } catch (e) {
+      print('Error clearing favorite words: $e');
+    }
+  }
+
+  // Check if a word is in favorites
   bool isFavorite(String word) {
-    return _favoriteItems.any((item) => item.word == word);
+    return _favoriteItems.any((item) => item.word.toLowerCase() == word.toLowerCase());
+  }
+
+// Toggle favorite status (non-blocking, optimistic update)
+  void toggleFavorite(String word) {
+    final isFav = isFavorite(word);
+
+    if (isFav) {
+      final itemToRemove = _favoriteItems.firstWhere(
+            (item) => item.word.toLowerCase() == word.toLowerCase(),
+      );
+
+      // 🔥 Remove locally first
+      _favoriteItems.remove(itemToRemove);
+      notifyListeners();
+
+      // Firestore update in background
+      _userActivityService.removeFromFavorites(itemToRemove.word).catchError((e) {
+        print('Error removing favorite: $e');
+
+        // Optional rollback if Firestore fails
+        _favoriteItems.insert(0, itemToRemove);
+        notifyListeners();
+      });
+
+    } else {
+      final newItem = FavoriteItem(word: word);
+
+      // 🔥 Add locally first
+      _favoriteItems.insert(0, newItem);
+      notifyListeners();
+
+      // Firestore update in background
+      _userActivityService.addToFavorites(word).catchError((e) {
+        print('Error adding favorite: $e');
+
+        // Optional rollback if Firestore fails
+        _favoriteItems.removeWhere((item) => item.word == word);
+        notifyListeners();
+      });
+    }
+  }
+
+  // Refresh data from Firebase
+  Future<void> refresh() async {
+    await loadFavoriteWords();
+  }
+
+  // Clear error message
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 }

@@ -2,9 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tarami_application/features/user/viewmodel/recent_viewmodel.dart'; // Adjust import
 
-
-class RecentScreen extends StatelessWidget {
+class RecentScreen extends StatefulWidget {
   const RecentScreen({super.key});
+
+  @override
+  State<RecentScreen> createState() => _RecentScreenState();
+}
+
+class _RecentScreenState extends State<RecentScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load recent words when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<RecentViewModel>().initialize();
+    });
+  }
 
   void _removeRecentDialog(BuildContext context, RecentViewModel viewModel, int index) {
     final itemToRemove = viewModel.recentItems[index];
@@ -15,14 +28,14 @@ class RecentScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
         content: SizedBox(
-          width: 350, // adjust width
-          height: 120, // adjust height
+          width: 350,
+          height: 120,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-               Text(
+              Text(
                 'Remove "${itemToRemove.word}" from Recent?',
-                style: TextStyle(color: Colors.white, fontSize: 20),
+                style: const TextStyle(color: Colors.white, fontSize: 20),
                 textAlign: TextAlign.center,
               ),
               Row(
@@ -78,7 +91,7 @@ class RecentScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () {
-              viewModel.clearAllRecents();;
+              viewModel.clearAllRecents();
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(
@@ -90,7 +103,6 @@ class RecentScreen extends StatelessWidget {
             ),
             child: const Text('Ok', style: TextStyle(color: Colors.black, fontSize: 17)),
           ),
-
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
@@ -110,7 +122,6 @@ class RecentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recentViewModel = Provider.of<RecentViewModel>(context);
-    final recentItems = recentViewModel.recentItems;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -135,38 +146,13 @@ class RecentScreen extends StatelessWidget {
               ),
             ),
 
-            // Content area
+            // Content area with loading states
             Expanded(
-              child: recentItems.isEmpty
-                  ? // Empty state
-              const Center(
-                child: Text(
-                  'You have no  recents searches.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              )
-                  : // List of recent words
-              ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
-                itemCount: recentItems.length,
-                itemBuilder: (context, index) {
-                  final item = recentItems[index];
-                  return ListTile(
-                    title: Text(item.word),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => _removeRecentDialog(context, recentViewModel, index),
-                    ),
-                  );
-                },
-              ),
+              child: _buildContent(recentViewModel),
             ),
 
             // Clear all button - only show if there are recent words
-            if (recentItems.isNotEmpty)
+            if (recentViewModel.recentItems.isNotEmpty && !recentViewModel.isLoading)
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: ElevatedButton(
@@ -177,7 +163,7 @@ class RecentScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  onPressed:() =>  _clearAllRecentsDialog(context, recentViewModel),
+                  onPressed: () => _clearAllRecentsDialog(context, recentViewModel),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 25, vertical: 12),
                     child: Text(
@@ -193,6 +179,73 @@ class RecentScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildContent(RecentViewModel viewModel) {
+    // Loading state
+    if (viewModel.isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading recent words...'),
+          ],
+        ),
+      );
+    }
+
+    // Error state
+    if (viewModel.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error: ${viewModel.errorMessage}'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                viewModel.clearError();
+                viewModel.refresh();
+              },
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Empty state
+    if (viewModel.recentItems.isEmpty) {
+      return const Center(
+        child: Text(
+          'You have no recent searches.',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
+
+    // List of recent words
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+      itemCount: viewModel.recentItems.length,
+      itemBuilder: (context, index) {
+        final item = viewModel.recentItems[index];
+        return ListTile(
+          title: Text(item.word),
+          trailing: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => _removeRecentDialog(context, viewModel, index),
+          ),
+        );
+      },
     );
   }
 }

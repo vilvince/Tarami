@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:tarami_application/features/dictionary/model/dictionary_model.dart';
 import 'package:tarami_application/core/services/dictionary_services.dart';
-
+// Add this import for the new service
+import 'package:tarami_application/core/services/user_activity_servicess.dart';
 
 class DictionaryViewModel extends ChangeNotifier {
   final DictionaryService _dictionaryService = DictionaryService();
+  final UserActivityService _userActivityService = UserActivityService(); // Add this
 
   // Dialect constants
   final List<String> _dialects = [
@@ -24,6 +26,10 @@ class DictionaryViewModel extends ChangeNotifier {
   String _searchQuery = '';
   String? _errorMessage;
 
+  // Add favorites state
+  Set<String> _favoriteWords = {};
+  bool _isLoadingFavorites = false;
+
   // Getters
   List<String> get dialects => _dialects;
   int get selectedDialectIndex => _selectedDialectIndex;
@@ -35,17 +41,31 @@ class DictionaryViewModel extends ChangeNotifier {
   bool get isSearching => _isSearching;
   String get searchQuery => _searchQuery;
   String? get errorMessage => _errorMessage;
+  Set<String> get favoriteWords => _favoriteWords;
+  bool get isLoadingFavorites => _isLoadingFavorites;
 
-  // Current word list for UI (returns word strings)
+  // Current word list for UI (returns word strings) - FILTERED BY DIALECT
   List<String> get currentWordList {
     final words = _searchQuery.isNotEmpty ? _searchResults : _allWords;
-    return words.map((entry) => entry.word).toList()..sort();
+
+    // Filter words that have translations for the selected dialect
+    final dialectKey = _getDialectKey(selectedDialect);
+    final filteredWords = words.where((entry) {
+      // Check if this word has a translation for the current dialect
+      final translation = entry.getTranslationForDialect(dialectKey);
+      return translation != null && translation.trim().isNotEmpty;
+    }).toList();
+
+    return filteredWords.map((entry) => entry.word).toList()..sort();
   }
 
   // Initialize the dictionary
   Future<void> initialize() async {
     print('Initializing Dictionary ViewModel...');
-    await loadAllWords();
+    await Future.wait([
+      loadAllWords(),
+      loadFavorites(),
+    ]);
   }
 
   // Load all words from Firebase
@@ -67,7 +87,24 @@ class DictionaryViewModel extends ChangeNotifier {
     }
   }
 
-  // Search for words
+  // Load user's favorite words
+  Future<void> loadFavorites() async {
+    _isLoadingFavorites = true;
+    notifyListeners();
+
+    try {
+      final favorites = await _userActivityService.getFavoriteWords();
+      _favoriteWords = favorites.map((word) => word.toLowerCase()).toSet();
+      print('Loaded ${_favoriteWords.length} favorite words');
+    } catch (e) {
+      print('Error loading favorites: $e');
+    } finally {
+      _isLoadingFavorites = false;
+      notifyListeners();
+    }
+  }
+
+  // Search for words - NO LONGER ADDS TO RECENT
   Future<void> searchWords(String query) async {
     _searchQuery = query.trim();
 
@@ -85,6 +122,9 @@ class DictionaryViewModel extends ChangeNotifier {
       print('Searching for: $_searchQuery');
       _searchResults = await _dictionaryService.searchWords(_searchQuery);
       print('Found ${_searchResults.length} results');
+
+      // NO LONGER adding search to recent here - only when word is clicked from search results
+
     } catch (e) {
       _errorMessage = 'Search failed: $e';
       print('Error searching: $e');
@@ -94,8 +134,8 @@ class DictionaryViewModel extends ChangeNotifier {
     }
   }
 
-  // Select a word to view details
-  void selectWord(String? wordName) {
+  // Select a word to view details - ONLY ADDS TO RECENT IF FROM SEARCH!
+  void selectWord(String? wordName) async {
     if (wordName == null) {
       _selectedWordEntry = null;
       notifyListeners();
@@ -109,12 +149,44 @@ class DictionaryViewModel extends ChangeNotifier {
             (entry) => entry.word.toLowerCase() == wordName.toLowerCase(),
       );
       print('Selected word: ${_selectedWordEntry?.word}');
+
+      // ONLY add to recent if the user clicked from SEARCH RESULTS (not from browsing all words)
+      if (_searchQuery.isNotEmpty) {
+        await _userActivityService.addToRecent(wordName, 'view');
+        print('Added "$wordName" to recent (from search results)');
+      } else {
+        print('Did NOT add "$wordName" to recent (browsing mode)');
+      }
+
     } catch (e) {
       print('Error selecting word: $e');
       _selectedWordEntry = null;
     }
 
     notifyListeners();
+  }
+
+  // Toggle favorite status for a word
+  Future<void> toggleFavorite(String word) async {
+    try {
+      final newStatus = await _userActivityService.toggleFavorite(word);
+
+      if (newStatus) {
+        _favoriteWords.add(word.toLowerCase());
+      } else {
+        _favoriteWords.remove(word.toLowerCase());
+      }
+
+      notifyListeners();
+      print('Toggled favorite for "$word" - now ${newStatus ? 'favorited' : 'unfavorited'}');
+    } catch (e) {
+      print('Error toggling favorite: $e');
+    }
+  }
+
+  // Check if word is favorite
+  bool isFavorite(String word) {
+    return _favoriteWords.contains(word.toLowerCase());
   }
 
   // Select dialect tab
@@ -126,7 +198,6 @@ class DictionaryViewModel extends ChangeNotifier {
   }
 
   // Helper methods for word details (these match your existing UI calls)
-
   String? getDialectTranslation(String word) {
     if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
       return _selectedWordEntry?.getTranslationForDialect(_getDialectKey(selectedDialect))
@@ -134,7 +205,6 @@ class DictionaryViewModel extends ChangeNotifier {
     }
     return null;
   }
-
 
   List<String> getSynonyms(String word) {
     if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
@@ -148,8 +218,6 @@ class DictionaryViewModel extends ChangeNotifier {
     }
     return [];
   }
-
-
 
   // Additional helper methods for your UI
   String getPhoneticsForDialect(String word) {
@@ -169,7 +237,6 @@ class DictionaryViewModel extends ChangeNotifier {
         ? phonetics
         : "/${word.toLowerCase()}/";
   }
-
 
   String? getPartOfSpeech(String word) {
     if (_selectedWordEntry?.word.toLowerCase() == word.toLowerCase()) {
@@ -214,8 +281,6 @@ class DictionaryViewModel extends ChangeNotifier {
     return 'No sample sentence available';
   }
 
-
-
   // Convert display dialect name to database key
   String _getDialectKey(String dialectName) {
     switch (dialectName) {
@@ -240,7 +305,10 @@ class DictionaryViewModel extends ChangeNotifier {
 
   // Refresh data
   Future<void> refresh() async {
-    await loadAllWords();
+    await Future.wait([
+      loadAllWords(),
+      loadFavorites(),
+    ]);
   }
 
   final Set<String> audioWords = {
@@ -250,5 +318,4 @@ class DictionaryViewModel extends ChangeNotifier {
   bool hasAudio(String word) {
     return audioWords.contains(word.toLowerCase());
   }
-
 }

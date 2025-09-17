@@ -28,7 +28,6 @@ class DictionaryService {
     }
   }
 
-  /// Search words by English term
   Future<List<DictionaryEntry>> searchWords(String searchTerm) async {
     if (searchTerm.trim().isEmpty) {
       return await getAllWords();
@@ -37,16 +36,13 @@ class DictionaryService {
     try {
       print('Searching for: $searchTerm');
 
-      // Search for words that start with the search term
-      final query = await _firestore
-          .collection('dictionary')
-          .where('word', isGreaterThanOrEqualTo: searchTerm.toLowerCase())
-          .where('word', isLessThanOrEqualTo: searchTerm.toLowerCase() + '\uf8ff')
-          .orderBy('word')
-          .get();
+      // Fetch all words once
+      final allWords = await getAllWords();
+      final lower = searchTerm.toLowerCase();
 
-      final results = query.docs.map((doc) {
-        return DictionaryEntry.fromFirestore(doc.data(), doc.id);
+      // Filter in Dart (case-insensitive, startsWith)
+      final results = allWords.where((entry) {
+        return entry.word.toLowerCase().startsWith(lower);
       }).toList();
 
       print('Found ${results.length} results for "$searchTerm"');

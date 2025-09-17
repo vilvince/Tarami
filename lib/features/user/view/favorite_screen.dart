@@ -2,8 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tarami_application/features/user/viewmodel/favorite_viewmodel.dart'; // Adjust import
 
-class FavoriteScreen extends StatelessWidget {
+class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
+
+  @override
+  State<FavoriteScreen> createState() => _FavoriteScreenState();
+}
+
+class _FavoriteScreenState extends State<FavoriteScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load favorite words when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FavoriteViewModel>().initialize();
+    });
+  }
 
   void _removeFavoriteDialog(BuildContext context, FavoriteViewModel viewModel, int index) {
     final itemToRemove = viewModel.favoriteItems[index];
@@ -14,48 +28,51 @@ class FavoriteScreen extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         contentPadding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
         content: SizedBox(
-          width: 350, // adjust width
-          height: 120, // adjust height
+          width: 350,
+          height: 120,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-               Text(
+              Text(
                 'Remove "${itemToRemove.word}" from favorites?',
-                style: TextStyle(color: Colors.white, fontSize: 20),
+                style: const TextStyle(color: Colors.white, fontSize: 20),
                 textAlign: TextAlign.center,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // OK button
-                    TextButton(
-                      onPressed: () {
-                        viewModel.removeFavoriteByIndex(index);
-                        Navigator.pop(context);
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-                        backgroundColor: Colors.amber,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                children: [
+                  // OK button
+                  TextButton(
+                    onPressed: () async {
+                      await viewModel.removeFavoriteByIndex(index);
+                      Navigator.pop(context);
+                    },
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
+                      backgroundColor: Colors.amber,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text('Ok', style: TextStyle(color: Colors.black, fontSize: 17)),
                     ),
-                    const SizedBox(width: 12),
-                    // Cancel button
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                    child: const Text(
+                      'Ok',
+                      style: TextStyle(color: Colors.black, fontSize: 17),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Cancel button
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.black, fontSize: 15)),
                     ),
-                  ],
+                    child: const Text('Cancel', style: TextStyle(color: Colors.black, fontSize: 15)),
+                  ),
+                ],
               ),
             ],
           ),
@@ -80,16 +97,15 @@ class FavoriteScreen extends StatelessWidget {
               viewModel.clearAllFavorites();
               Navigator.pop(context);
             },
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
-        backgroundColor: Colors.amber,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      child: const Text('Ok', style: TextStyle(color: Colors.black, fontSize: 17)),
-    ),
-
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.fromLTRB(25, 0, 30, 0),
+              backgroundColor: Colors.amber,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: const Text('Ok', style: TextStyle(color: Colors.black, fontSize: 17)),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
@@ -109,7 +125,6 @@ class FavoriteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final favoriteViewModel = Provider.of<FavoriteViewModel>(context);
-    final favoriteItems = favoriteViewModel.favoriteItems;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -134,38 +149,13 @@ class FavoriteScreen extends StatelessWidget {
               ),
             ),
 
-            // List of favorites
+            // Content area with loading states
             Expanded(
-              // You had an Expanded widget wrapping another Expanded widget for the list part.
-              // Only one is needed here.
-              child: favoriteItems.isEmpty
-                  ? const Center(
-                child: Text(
-                  'You have no saved favorites.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              )
-                  : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
-                itemCount: favoriteItems.length,
-                itemBuilder: (context, index) {
-                  final item = favoriteItems[index];
-                  return ListTile(
-                    title: Text(item.word),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close),
-                      // ---- FIX: Pass favoriteViewModel to the dialog method ----
-                      onPressed: () => _removeFavoriteDialog(context, favoriteViewModel, index),
-                    ),
-                  );
-                },
-              ),
+              child: _buildContent(favoriteViewModel),
             ),
-            // Clear all button
-            if (favoriteItems.isNotEmpty)
+
+            // Clear all button - only show if there are favorites
+            if (favoriteViewModel.favoriteItems.isNotEmpty && !favoriteViewModel.isLoading)
               Padding(
                 padding: const EdgeInsets.only(bottom: 20),
                 child: ElevatedButton(
@@ -179,15 +169,86 @@ class FavoriteScreen extends StatelessWidget {
                   onPressed: () => _clearAllFavoritesDialog(context, favoriteViewModel),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 25, vertical: 12),
-                    child: Text('Clear all Favorites', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      'Clear all Favorites',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ),
           ],
         ),
       ),
+    );
+  }
 
+  Widget _buildContent(FavoriteViewModel viewModel) {
+    // Loading state
+    if (viewModel.isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading favorite words...'),
+          ],
+        ),
+      );
+    }
 
+    // Error state
+    if (viewModel.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error: ${viewModel.errorMessage}'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                viewModel.clearError();
+                viewModel.refresh();
+              },
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Empty state
+    if (viewModel.favoriteItems.isEmpty) {
+      return const Center(
+        child: Text(
+          'You have no saved favorites.',
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey,
+          ),
+        ),
+      );
+    }
+
+    // List of favorites
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
+      itemCount: viewModel.favoriteItems.length,
+      itemBuilder: (context, index) {
+        final item = viewModel.favoriteItems[index];
+        return ListTile(
+          title: Text(item.word),
+          trailing: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => _removeFavoriteDialog(context, viewModel, index),
+          ),
+        );
+      },
     );
   }
 }

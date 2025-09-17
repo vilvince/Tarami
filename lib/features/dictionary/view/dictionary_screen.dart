@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/dictionary_view_model.dart';
+import 'package:tarami_application/features/user/view/favorite_screen.dart';
+
 
 class Dictionary extends StatefulWidget {
   const Dictionary({super.key});
@@ -11,6 +13,14 @@ class Dictionary extends StatefulWidget {
 
 
 class _DictionaryState extends State<Dictionary> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,11 +46,33 @@ class _DictionaryState extends State<Dictionary> {
         )
             : null,
         title: _buildSearchBar(),
-        actions: const [
-          Icon(Icons.favorite, color: Colors.white),
-          SizedBox(width: 12),
-          Icon(Icons.notifications_none, color: Colors.white),
-          SizedBox(width: 12),
+        actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) => const FavoriteScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(1.0, 0.0);
+                    const end = Offset.zero;
+                    const curve = Curves.ease;
+
+                    final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: child,
+                    );
+                  },
+                ),
+              );
+            },
+            child: const Icon(Icons.favorite, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          const Icon(Icons.notifications_none, color: Colors.white),
+          const SizedBox(width: 12),
         ],
       ),
       body: Column(
@@ -116,21 +148,39 @@ class _DictionaryState extends State<Dictionary> {
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
+              controller: _searchController, // ✅ attach controller here
               textAlign: TextAlign.left,
               textAlignVertical: TextAlignVertical.center,
-              onChanged: (query){
-                context.read<DictionaryViewModel>().searchWords(query);
+              onChanged: (query) {
+                final vm = context.read<DictionaryViewModel>();
+
+                if (vm.selectedWord != null) {
+                  vm.selectWord(null);
+                }
+
+                vm.searchWords(query);
+                setState(() {}); // rebuild to show/hide ❌ button
               },
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Search...',
-                hintStyle: TextStyle(
+                hintStyle: const TextStyle(
                   color: Colors.black54,
                   fontSize: 18,
                 ),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
-                suffixIcon: Icon(Icons.mic, color: Colors.grey, size: 25),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.close, color: Colors.grey, size: 22),
+                  onPressed: () {
+                    _searchController.clear();
+                    final vm = context.read<DictionaryViewModel>();
+                    vm.searchWords("");
+                    setState(() {});
+                  },
+                )
+                    : const Icon(Icons.mic, color: Colors.grey, size: 25),
               ),
               style: const TextStyle(color: Colors.black87),
             ),
@@ -280,9 +330,27 @@ class _DictionaryState extends State<Dictionary> {
                       ],
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Icon(Icons.favorite_border, size: 28),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: GestureDetector(
+                      onTap: () {
+                        // Toggle favorite status
+                        viewModel.toggleFavorite(word);
+                      },
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          viewModel.isFavorite(word)
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          key: ValueKey(viewModel.isFavorite(word)),
+                          size: 28,
+                          color: viewModel.isFavorite(word)
+                              ? Colors.amber
+                              : Colors.black54,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
