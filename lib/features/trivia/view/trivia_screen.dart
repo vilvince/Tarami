@@ -12,7 +12,7 @@ class TriviaScreenPage extends StatelessWidget {
       child: Consumer<TriviaViewModel>(
         builder: (context, vm, _) {
           return Container(
-            color: const Color(0xFF0A284F),
+            color: const Color(0xFF0d2334),
             child: SafeArea(
               child: Column(
                 children: [

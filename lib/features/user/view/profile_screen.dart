@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/profile_viewmodel.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -122,12 +123,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
               validator: (value) =>
               value == null || value.isEmpty ? 'Please enter your last name' : null,
             ),
-            _buildTextFormField(
-              viewModel.genderController,
-              'Gender',
-              validator: (value) =>
-              value == null || value.isEmpty ? 'Please enter your gender' : null,
+
+          DropdownButtonFormField2<String>(
+            value: viewModel.genderController.text.isNotEmpty
+                ? viewModel.genderController.text
+                : null,
+            items: const [
+              DropdownMenuItem(value: "Male", child: Text("Male")),
+              DropdownMenuItem(value: "Female", child: Text("Female")),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                viewModel.genderController.text = value;
+              }
+            },
+            decoration: InputDecoration(
+              labelText: 'Gender',
+              labelStyle: const TextStyle(color: Colors.black87),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Colors.black, width: 2), // 👈 black when focused
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Colors.black), // black when not focused
+              ),
             ),
+
+            /// 👇 Control popup menu size
+            dropdownStyleData: const DropdownStyleData(
+              maxHeight: 200,
+              width: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+              )
+            ),
+          ),
 
             // Date picker handled by ViewModel
             GestureDetector(
@@ -164,6 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               keyboardType: TextInputType.emailAddress,
               validator: (value) =>
                   value == null || value.isEmpty ? 'Please enter your email address' : null,
+              readOnly: true,
               enabled: false,
             ),
 
@@ -221,6 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         TextInputType keyboardType = TextInputType.text,
         String? Function(String?)? validator,
         bool enabled = true,
+        bool readOnly = false,
       }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -230,6 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         style: const TextStyle(color: Colors.black),
         cursorColor: Colors.black,
         validator: validator,
+        enabled: enabled,
+        readOnly: readOnly,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.black87),

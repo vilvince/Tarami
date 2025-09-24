@@ -34,7 +34,18 @@ class _DictionaryState extends State<Dictionary> {
   Widget build(BuildContext context) {
     final viewModel = context.watch<DictionaryViewModel>();
 
-    return Scaffold(
+    return WillPopScope(
+        onWillPop: () async {
+          if (viewModel.selectedWord != null) {
+            // ✅ Instead of closing the app, clear selection and reload list
+            viewModel.selectWord(null);
+            viewModel.searchWords("");
+            return false; // stop Navigator.pop
+          }
+          return true; // allow normal back navigation when no word is selected
+        },
+
+      child: Scaffold(
       backgroundColor: const Color(0xFF0B1D2B),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B1D2B),
@@ -42,7 +53,10 @@ class _DictionaryState extends State<Dictionary> {
         leading: viewModel.selectedWord != null
             ? IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => viewModel.selectWord(null),
+          onPressed: () {
+            viewModel.selectWord(null);
+            viewModel.searchWords(""); // ✅ reload full list immediately
+          },
         )
             : null,
         title: _buildSearchBar(),
@@ -94,6 +108,7 @@ class _DictionaryState extends State<Dictionary> {
           ),
         ],
       ),
+    ),
     );
   }
   Widget _buildSynonyms(DictionaryViewModel viewModel, String word) {

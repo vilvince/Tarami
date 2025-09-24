@@ -109,7 +109,8 @@ class DictionaryViewModel extends ChangeNotifier {
     _searchQuery = query.trim();
 
     if (_searchQuery.isEmpty) {
-      _searchResults = [];
+      // ✅ Instead of clearing, reset to full dictionary
+      _searchResults = _allWords;
       notifyListeners();
       return;
     }
@@ -122,9 +123,6 @@ class DictionaryViewModel extends ChangeNotifier {
       print('Searching for: $_searchQuery');
       _searchResults = await _dictionaryService.searchWords(_searchQuery);
       print('Found ${_searchResults.length} results');
-
-      // NO LONGER adding search to recent here - only when word is clicked from search results
-
     } catch (e) {
       _errorMessage = 'Search failed: $e';
       print('Error searching: $e');
@@ -133,6 +131,7 @@ class DictionaryViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
 
   // Select a word to view details - ONLY ADDS TO RECENT IF FROM SEARCH!
   void selectWord(String? wordName) async {

@@ -32,7 +32,7 @@ class ContributeScreenPage extends StatelessWidget {
               ),
             ),
             child: Scaffold(
-              backgroundColor: const Color(0xFF0A2A44),
+              backgroundColor: const Color(0xFF0d2334),
               body: Align(
                 alignment: Alignment.bottomCenter,
                 child: Container(
