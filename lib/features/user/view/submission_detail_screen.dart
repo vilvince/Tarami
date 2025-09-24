@@ -115,7 +115,6 @@ class SubmissionDetailScreen extends StatelessWidget {
                         buildDetailRow('Definition:', submission['definition']),
                         buildDetailRow('Example Sentence:', submission['exampleSentence']),
                         buildDetailRow('Synonyms:', submission['synonyms']),
-                        buildDetailRow('Etymology:', submission['etymology']),
 
                       ],
                     ),

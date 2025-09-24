@@ -36,13 +36,13 @@ class ContributeScreenPage extends StatelessWidget {
               body: Align(
                 alignment: Alignment.bottomCenter,
                 child: Container(
-                  height: MediaQuery.of(context).size.height * 0.78,
+                  height: MediaQuery.of(context).size.height * 0.83,
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(32),
-                      topRight: Radius.circular(32),
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
                     ),
                   ),
                   child: Center(
@@ -50,17 +50,75 @@ class ContributeScreenPage extends StatelessWidget {
                       constraints: const BoxConstraints(maxWidth: 500),
                       child: Column(
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16.0),
-                            child: Text(
-                              "Let’s keep our language alive — send us a word!",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 24, top: 24, bottom: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Expanded(
+                                  child: Text(
+                                    "Let's keep our language alive — send us a word!",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 24),
+                                  child: vm.isLoadingCount
+                                      ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                      : Text(
+                                    "${vm.remainingSubmissions}/5 left",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: vm.remainingSubmissions > 0
+                                          ? Colors.green[700]
+                                          : Colors.red[700],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+
+                          // Error message display
+                          if (vm.errorMessage != null)
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.red[50],
+                                border: Border.all(color: Colors.red[300]!),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      vm.errorMessage!,
+                                      style: TextStyle(color: Colors.red[700], fontSize: 13),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close, size: 18),
+                                    onPressed: vm.clearError,
+                                    color: Colors.red[700],
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
+                              ),
+                            ),
+
                           Expanded(
                             child: ScrollConfiguration(
                               behavior: const ScrollBehavior().copyWith(overscroll: false),
@@ -75,28 +133,12 @@ class ContributeScreenPage extends StatelessWidget {
                                     buildTextField(vm.wordController, "Please enter the word you want to contribute", "*Enter the word you want to contribute", vm),
                                     buildTextField(vm.translationController, "Provide the translation in the selected dialect", "*Provide the translation", vm),
                                     buildTextField(vm.phoneticController, "Phonetic (e.g., /va·kan·si/)", "*Required", vm),
-                                    buildTextField(vm.tagalogTranslationController, "Provide the Tagalog translation",  "*Provide the Tagalog translation", vm),
+                                    buildTextField(vm.tagalogTranslationController, "Provide the Tagalog translation", "*Provide the Tagalog translation", vm),
                                     buildPartOfSpeechDropdown(vm),
                                     buildValidationText(vm.selectedPartOfSpeech == null, "*Choose the part of speech", vm),
-                                    buildTextField(vm.definitionController, "Provide the word’s definition", "*Give a clear definition", vm, maxLines: 3),
-                                    buildTextField(
-                                      vm.etymologyController,
-                                      "Etymology (Optional)",
-                                      "Enter the origin or history of the word",
-                                      vm,
-                                    ),
-                                    const Padding(
-                                      padding: EdgeInsets.only(left: 12.0, top: 4.0, bottom: 12.0),
-                                      child: Text(
-                                        "Note: Etymology means the origin or history of a word, e.g., from Latin or Spanish.",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    ),
-                                    buildTextField(vm.exampleController, "Example sentences (e.g., I like eating sinapot.)", "*Provide at least one example sentence", vm, maxLines: 2),
+                                    buildTextField(vm.definitionController, "Provide the word's definition", "*Give a clear definition", vm, maxLines: 3),
+                                    buildTextField(vm.exampleSentenceInDialectController, "Example sentences in the selected dialect", "*Provide at least one example sentence in the selected dialect", vm, maxLines: 2),
+                                    buildTextField(vm.exampleSentenceInEnglishController, "Example sentences in English", "*Provide at least one example sentence in English", vm, maxLines: 2),
                                     buildTextField(vm.synonymsController, "Synonyms (separate with commas)", "*Provide synonyms if available", vm, maxLines: 2),
                                     const SizedBox(height: 16),
                                   ],
@@ -112,40 +154,42 @@ class ContributeScreenPage extends StatelessWidget {
                                 SizedBox(
                                   width: 120,
                                   child: ElevatedButton(
-                                    onPressed: () {
+                                    onPressed: vm.isSubmitting || !vm.canSubmit()
+                                        ? null
+                                        : () {
                                       if (!vm.validateForm()) return;
-                                      if (!vm.canSubmit()) {
-                                        showDialog(
-                                          context: context,
-                                          builder: (_) => const AlertDialog(
-                                            title: Text("Limit Reached"),
-                                            content: Text("You can only submit 5 words per day."),
-                                          ),
-                                        );
-                                        return;
-                                      }
                                       showSummaryModal(context, vm);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFFFFC107),
                                       foregroundColor: Colors.black,
+                                      disabledBackgroundColor: Colors.grey[300],
+                                      disabledForegroundColor: Colors.grey[600],
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                       textStyle: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
-                                    child: const Text("Submit"),
+                                    child: vm.isSubmitting
+                                        ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                                    )
+                                        : const Text("Submit"),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 SizedBox(
                                   width: 120,
                                   child: ElevatedButton(
-                                    onPressed: vm.clearForm,
+                                    onPressed: vm.isSubmitting ? null : vm.clearForm,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.grey[300],
                                       foregroundColor: Colors.black,
+                                      disabledBackgroundColor: Colors.grey[200],
+                                      disabledForegroundColor: Colors.grey[500],
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(15),
@@ -185,7 +229,7 @@ class ContributeScreenPage extends StatelessWidget {
       menuMaxHeight: 200,
       isExpanded: true,
       items: vm.dialects.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-      onChanged: vm.selectDialect,
+      onChanged: vm.isSubmitting ? null : vm.selectDialect,
     );
   }
 
@@ -207,7 +251,7 @@ class ContributeScreenPage extends StatelessWidget {
           menuMaxHeight: 200,
           isExpanded: true,
           items: vm.partsOfSpeech.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-          onChanged: vm.selectPartOfSpeech,
+          onChanged: vm.isSubmitting ? null : vm.selectPartOfSpeech,
         ),
       ],
     );
@@ -221,6 +265,7 @@ class ContributeScreenPage extends StatelessWidget {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          enabled: !vm.isSubmitting,
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
             labelText: label,
@@ -248,79 +293,93 @@ class ContributeScreenPage extends StatelessWidget {
   void showSummaryModal(BuildContext context, ContributeViewModel vm) {
     showDialog(
       context: context,
-      builder: (context) {
-        return Dialog(
-          backgroundColor: const Color(0xFF0A2A44),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            width: 350,
-            constraints: const BoxConstraints(maxHeight: 400),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        buildSummaryRow("Dialect:", vm.selectedDialect ?? ""),
-                        buildSummaryRow("Word:", vm.wordController.text),
-                        buildSummaryRow("Translation:", vm.translationController.text),
-                        buildSummaryRow("Phonetic:", vm.phoneticController.text),
-                        buildSummaryRow("Tagalog:", vm.tagalogTranslationController.text),
-                        buildSummaryRow("Part of Speech:", vm.selectedPartOfSpeech ?? ""),
-                        buildSummaryRow("Definition:", vm.definitionController.text),
-                        if (vm.etymologyController.text.isNotEmpty)
-                          buildSummaryRow("Etymology:", vm.etymologyController.text),
-                        buildSummaryRow("Example:", vm.exampleController.text),
-                        buildSummaryRow("Synonyms:", vm.synonymsController.text),
-                      ],
+      barrierDismissible: !vm.isSubmitting,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: const Color(0xFF0A2A44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                width: 350,
+                constraints: const BoxConstraints(maxHeight: 400),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            buildSummaryRow("Dialect:", vm.selectedDialect ?? ""),
+                            buildSummaryRow("Word:", vm.wordController.text),
+                            buildSummaryRow("Translation:", vm.translationController.text),
+                            buildSummaryRow("Phonetic:", vm.phoneticController.text),
+                            buildSummaryRow("Tagalog:", vm.tagalogTranslationController.text),
+                            buildSummaryRow("Part of Speech:", vm.selectedPartOfSpeech ?? ""),
+                            buildSummaryRow("Definition:", vm.definitionController.text),
+                            buildSummaryRow("Example in Dialect:", vm.exampleSentenceInDialectController.text),
+                            buildSummaryRow("Example in English:", vm.exampleSentenceInEnglishController.text),
+                            buildSummaryRow("Synonyms:", vm.synonymsController.text),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          vm.submitForm();
-                          Navigator.of(context).pop(); // close summary modal
-
-                          // show success modal using parent context
-                          Future.microtask(() {
-                            showSuccessModal(
-                              Navigator.of(context, rootNavigator: true).context,
-                            );
-                          });
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFC107),
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        ),
-                        child: const Text("Submit"),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton(
+                            onPressed: vm.isSubmitting
+                                ? null
+                                : () async {
+                              final success = await vm.submitForm();
+                              if (success && dialogContext.mounted) {
+                                Navigator.of(dialogContext).pop(); // close summary modal
+                                // Use the original context for success modal
+                                if (context.mounted) {
+                                  showSuccessModal(context);
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFFC107),
+                              foregroundColor: Colors.black,
+                              disabledBackgroundColor: Colors.grey[300],
+                              disabledForegroundColor: Colors.grey[600],
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                            ),
+                            child: vm.isSubmitting
+                                ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            )
+                                : const Text("Submit"),
+                          ),
+                          const SizedBox(width: 5),
+                          ElevatedButton(
+                            onPressed: vm.isSubmitting ? null : () => Navigator.of(dialogContext).pop(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[300],
+                              foregroundColor: Colors.black,
+                              disabledBackgroundColor: Colors.grey[200],
+                              disabledForegroundColor: Colors.grey[500],
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                            ),
+                            child: const Text("Edit"),
+                          ),
+                        ],
                       ),
-
-                      const SizedBox(width: 5),
-                      ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300],
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                        ),
-                        child: const Text("Edit"),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

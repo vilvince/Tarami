@@ -1,96 +1,139 @@
+// features/user/viewmodel/submission_viewmodel.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tarami_application/data/models/submission_model.dart';
 
 class SubmissionViewModel extends ChangeNotifier {
-  final List<Submission> _submissions = [
-    Submission(
-        id: '1',
-        word: 'Eat',
-        dialect: 'Legazpeño Bikol',
-        date: DateTime(2025, 8, 12),
-        status: 'Pending',
-        translation: 'Kaon',
-        phonetics: '/ˈkaɔn/',
-        partOfSpeech: 'Verb',
-        tagalog: 'Kain',
-        definition: 'To put (food) into the mouth and chew and swallow dhfgjksa kjsdhgkjsah g asjdghfska dgjahsdg asdggkjhsad gsagjkh fgdkshfgjkhds dfjghd fgljkh sdfgjk sjfdghdsjkfg kljdhfgjsdh.',
-        exampleSentence: 'Kaon na kita!',
-        synonyms: 'Lugod, Pakaon',
-        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-    ),
-    Submission(
-        id: '2',
-        word: 'Stop',
-        dialect: 'West Miraya',
-        date: DateTime(2025, 4, 12),
-        status: 'Approved',
-        translation: 'Pundo',
-        phonetics: '/ˈPondo/',
-        partOfSpeech: 'Verb',
-        tagalog: 'Tigil',
-        definition: 'To cease from some action or operation; to come to an end.',
-        exampleSentence: 'Pundo na kita!',
-        synonyms: 'Para, Pakaon',
-        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
-    ),
-    Submission(
-        id: '3',
-        word: 'House',
-        dialect: 'Legazpeño Bikol',
-        date: DateTime(2025, 8, 12),
-        status: 'Denied',
-        translation: 'Harong',
-        phonetics: '/haron/',
-        partOfSpeech: 'Noun',
-        tagalog: 'Bahay',
-        definition: 'A building for human habitation, especially one that consists of a ground floor.',
-        exampleSentence: 'Asin harong mo',
-        synonyms: 'Balay, Tahanan',
-        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
+  List<Submission> _submissions = [];
+  bool _isLoading = true;
+  String? _error;
 
-    ),
-    Submission(
-        id: '4',
-        word: 'Water',
-        dialect: 'East Miraya',
-        date: DateTime(2025, 8, 12),
-        status: 'Flagged',
-        translation: 'Tubig',
-        phonetics: '/tubig/',
-        partOfSpeech: 'Noun',
-        tagalog: 'Tubig',
-        definition: 'A colorless, transparent, odorless liquid that forms the seas, lakes, riversss.',
-        exampleSentence: 'Mag inom ka tubig',
-        synonyms: 'Lugod, Pakaon',
-        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
-
-    ),
-    Submission(
-        id: '5',
-        word: 'Love',
-        dialect: 'Libon Bikol',
-        date: DateTime(2025, 6, 12),
-        status: 'Pending',
-        translation: 'Gugma',
-        phonetics: '/ˈgugma/',
-        partOfSpeech: 'Noun',
-        tagalog: 'Pagmamahal',
-        definition: 'An intense feeling of deep affection.',
-        exampleSentence: 'Gugma ko saimo.',
-        synonyms: 'Lugod, Pakaon',
-        etymology: 'orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut eni'
-
-    ),
-  ];
-
+  // Getters
   List<Submission> get submissions => _submissions;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
+  SubmissionViewModel() {
+    _loadSubmissions();
+  }
+
+  // Load user submissions directly from "word_submissions" collection
+  Future<void> _loadSubmissions() async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      print('Loading submissions for user: ${user.uid}');
+
+      // Query the word_submissions collection directly (no orderBy to avoid index requirement)
+      final querySnapshot = await _firestore
+          .collection('word_submissions')
+          .where('submitted_by', isEqualTo: user.uid)
+          .get();
+
+      print('Found ${querySnapshot.docs.length} submissions');
+
+      // Convert Firestore documents to Submission objects
+      _submissions = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        print('Processing submission: ${data['word']} - Status: ${data['status']}');
+
+        // Parse example sentences (stored as combined string)
+        final exampleSentence = data['example_sentence'] ?? '';
+        final examples = exampleSentence.split('|');
+        final dialectExample = examples.isNotEmpty ? examples[0].trim() : '';
+        final englishExample = examples.length > 1 ? examples[1].trim() : '';
+        final combinedExample = dialectExample.isNotEmpty && englishExample.isNotEmpty
+            ? '$dialectExample | $englishExample'
+            : dialectExample + englishExample;
+
+        return Submission(
+          id: data['submitted_id'] ?? doc.id,
+          word: data['word'] ?? '',
+          dialect: data['dialect'] ?? '',
+          date: data['date_submitted'] != null
+              ? (data['date_submitted'] as Timestamp).toDate()
+              : DateTime.now(),
+          status: _capitalizeStatus(data['status'] ?? 'pending'),
+          translation: data['translation'] ?? '',
+          phonetics: data['phonetics'] ?? '',
+          partOfSpeech: data['part_of_speech'] ?? '',
+          tagalog: data['tagalog_translation'] ?? '',
+          definition: data['definition'] ?? '',
+          exampleSentence: combinedExample,
+          synonyms: data['synonyms'] ?? 'N/A',
+        );
+      }).toList();
+
+      print('Successfully loaded ${_submissions.length} submissions');
+
+      // Sort by date in the app (newest first) to avoid needing Firestore composite index
+      _submissions.sort((a, b) => b.date.compareTo(a.date));
+
+    } catch (e) {
+      _error = 'Failed to load submissions: $e';
+      print('Error loading submissions: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Helper method to capitalize status
+  String _capitalizeStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'Pending';
+      case 'accepted':
+        return 'Approved';
+      case 'denied':
+        return 'Denied';
+      case 'flagged':
+        return 'Flagged';
+      default:
+        return 'Pending';
+    }
+  }
+
+  // Get submissions by status
+  List<Submission> getSubmissionsByStatus(String status) {
+    if (status.toLowerCase() == 'all') {
+      return _submissions;
+    }
+    return _submissions.where((submission) =>
+    submission.status.toLowerCase() == status.toLowerCase()).toList();
+  }
+
+  // Refresh submissions
+  Future<void> refreshSubmissions() async {
+    await _loadSubmissions();
+  }
+
+  // Find submission by ID
   Submission? getSubmissionById(String id) {
     try {
       return _submissions.firstWhere((submission) => submission.id == id);
     } catch (e) {
       return null;
     }
+  }
+
+  // Get count by status
+  int getCountByStatus(String status) {
+    if (status.toLowerCase() == 'all') {
+      return _submissions.length;
+    }
+    return _submissions.where((submission) =>
+    submission.status.toLowerCase() == status.toLowerCase()).length;
   }
 }

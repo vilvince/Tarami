@@ -4,7 +4,7 @@ class Submission {
   final String word;
   final String dialect;
   final DateTime date;
-  final String status; // e.g., "Pending", "Approved", "Rejected"
+  final String status; // e.g., "Pending", "Approved", "Denied", "Flagged"
   final String translation;
   final String phonetics;
   final String partOfSpeech;
@@ -12,8 +12,7 @@ class Submission {
   final String definition;
   final String exampleSentence;
   final String synonyms;
-  final String etymology;
-
+  final String? etymology; // Optional field
 
   Submission({
     required this.id,
@@ -28,6 +27,6 @@ class Submission {
     required this.definition,
     required this.exampleSentence,
     required this.synonyms,
-    required this.etymology,
+    this.etymology,
   });
 }
