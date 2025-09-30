@@ -183,8 +183,22 @@ class _UserTabScreenState extends State<UserTabScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const SubmissionScreen()),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const SubmissionScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0); // Right to left
+                              const end = Offset.zero;
+                              const curve = Curves.ease;
+
+                              final tween =
+                              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
@@ -194,8 +208,22 @@ class _UserTabScreenState extends State<UserTabScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const FaqsScreen()),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const FaqsScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0); // Right to left
+                              const end = Offset.zero;
+                              const curve = Curves.ease;
+
+                              final tween =
+                              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
@@ -205,8 +233,22 @@ class _UserTabScreenState extends State<UserTabScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const FavoriteScreen()),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const FavoriteScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0); // Right to left
+                              const end = Offset.zero;
+                              const curve = Curves.ease;
+
+                              final tween =
+                              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
@@ -216,8 +258,22 @@ class _UserTabScreenState extends State<UserTabScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const RecentScreen()),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const RecentScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0); // Right to left
+                              const end = Offset.zero;
+                              const curve = Curves.ease;
+
+                              final tween =
+                              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
@@ -227,8 +283,22 @@ class _UserTabScreenState extends State<UserTabScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const QuizStartScreen()),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const QuizStartScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0); // Right to left
+                              const end = Offset.zero;
+                              const curve = Curves.ease;
+
+                              final tween =
+                              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
@@ -238,8 +308,22 @@ class _UserTabScreenState extends State<UserTabScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const AboutScreen()),
+                          PageRouteBuilder(
+                            pageBuilder: (context, animation, secondaryAnimation) => const AboutScreen(),
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                              const begin = Offset(1.0, 0.0); // Right to left
+                              const end = Offset.zero;
+                              const curve = Curves.ease;
+
+                              final tween =
+                              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),

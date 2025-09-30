@@ -15,53 +15,125 @@ class QuizStartScreen extends StatelessWidget {
   }
 }
 
-class QuizStartView extends StatelessWidget {
+// In quiz_start_screen.dart
+class QuizStartView extends StatefulWidget {
   const QuizStartView({Key? key}) : super(key: key);
 
   @override
+  State<QuizStartView> createState() => _QuizStartViewState();
+}
+
+class _QuizStartViewState extends State<QuizStartView> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize game when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<QuizViewModel>().initializeGame();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // 1. Remove the Scaffold's background color
-      // backgroundColor: const Color(0xFF2C5F7C), // Removed this line
-      body: SafeArea(
-        child: Column(
-          children: [
+    return Consumer<QuizViewModel>(
+      builder: (context, viewModel, child) {
+        if (viewModel.quizState == QuizState.loading) {
+          return Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
-            // Main content
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                ),
-                child: Column(
-                  children: [
-                    // Back arrow inside container
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        alignment: Alignment.centerLeft,
-                        child: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Color(0xFF333333),
-                          size: 28,
+        if (viewModel.quizState == QuizState.error) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error: ${viewModel.errorMessage}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: viewModel.initializeGame,
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Scaffold(
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(color: Colors.white),
+                    child: Column(
+                      children: [
+                        // Back button
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            alignment: Alignment.centerLeft,
+                            child: const Icon(
+                              Icons.arrow_back_ios_new,
+                              color: Color(0xFF333333),
+                              size: 28,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
 
-                    //const SizedBox(height: 40),
-                    // Logo and button
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            const TaramLogo(),
-                            Consumer<QuizViewModel>(
-                              builder: (context, viewModel, child) {
-                                return SizedBox(
+
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 30),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'Badge Level',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      Text(
+                                        viewModel.userStats.badgeLevel,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFFFC107),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 30),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                const TaramLogo(),
+                                SizedBox(height: 40),
+                                SizedBox(
                                   width: double.infinity,
                                   height: 50,
                                   child: ElevatedButton(
@@ -95,25 +167,24 @@ class QuizStartView extends StatelessWidget {
                                       ),
                                     ),
                                   ),
-                                );
-                              },
+                                ),
+
+                              ],
                             ),
-                          // const SizedBox(height: 10),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
-
 // Custom TARAM Logo Widget (remains the same)
 class TaramLogo extends StatelessWidget {
   const TaramLogo({Key? key}) : super(key: key);
@@ -126,7 +197,7 @@ class TaramLogo extends StatelessWidget {
         Container(
           margin: const EdgeInsets.only(right: 8),
           child: Image(
-          image: AssetImage('assets/TaramiLogo.png'),
+            image: AssetImage('assets/TaramiLogo.png'),
             width: 300,
             height: 350,
           ),

@@ -111,6 +111,8 @@ class _DictionaryState extends State<Dictionary> {
     ),
     );
   }
+
+  
   Widget _buildSynonyms(DictionaryViewModel viewModel, String word) {
     final synonymsList = viewModel.getSynonyms(word);
 
@@ -125,19 +127,25 @@ class _DictionaryState extends State<Dictionary> {
       spacing: 6.0,
       runSpacing: 4.0,
       children: synonymsList.map((syn) {
+        final exists = viewModel.currentWordList
+            .map((w) => w.toLowerCase().trim())
+            .contains(syn.toLowerCase().trim()); // ✅ safe check
+
         return GestureDetector(
-          onTap: () => viewModel.selectWord(syn),
+          onTap: exists ? () => viewModel.selectWord(syn) : null,
           child: Text(
             syn,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
-              color: Colors.blueAccent,
+              color: exists ? Colors.blueAccent : Colors.grey,
+              decoration: exists ? TextDecoration.underline : TextDecoration.none,
             ),
           ),
         );
       }).toList(),
     );
   }
+
 
 
 

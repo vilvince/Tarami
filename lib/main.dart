@@ -45,9 +45,14 @@ class TaramiApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        scaffoldBackgroundColor: Colors.white,
         textTheme: GoogleFonts.poppinsTextTheme(), // 👈 Set global font here
         primarySwatch: Colors.blue,
         useMaterial3: true, // optional, depending on your setup
+        progressIndicatorTheme: const ProgressIndicatorThemeData(
+          color: Colors.white,              // 👈 active loader color
+          circularTrackColor: Color(0xFF0B1E2D), // 👈 background circle
+        ),
       ),
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
