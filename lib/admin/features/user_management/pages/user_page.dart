@@ -36,7 +36,7 @@ class UserPage extends StatelessWidget {
                 child: DataTable(
                   headingRowHeight: 48,
                   dataRowHeight: 56,
-                  columnSpacing: 80,
+                  columnSpacing: 60,
                   horizontalMargin: 16,
                   headingRowColor: MaterialStateProperty.all(
                     Colors.grey.shade100,
@@ -50,7 +50,6 @@ class UserPage extends StatelessWidget {
                     DataColumn(label: Expanded(child: Text("Email"))),
                     DataColumn(label: Expanded(child: Text("Contact Number"))),
                     DataColumn(label: Expanded(child: Text("Submitted Words"))),
-                    DataColumn(label: Expanded(child: Text("Role"))),
                     DataColumn(label: Expanded(child: Text("Actions"))),
                   ],
                   rows: vm.users.map((user) {
@@ -61,46 +60,55 @@ class UserPage extends StatelessWidget {
                         DataCell(Text(user.contactNumber ?? "-")),
                         DataCell(Text(user.submittedWords.toString())),
                         DataCell(
-                          DropdownButtonFormField<String>(
-                            value: user.role,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey.shade100,
-                            ),
-                            dropdownColor: Colors.white,
-                            borderRadius: BorderRadius.circular(10), // 🔧 ito nag-round ng dropdown popup
-                            items: const [
-                              DropdownMenuItem(
-                                value: "User",
-                                child: Text("User"),
-                              ),
-                              DropdownMenuItem(
-                                value: "Admin",
-                                child: Text("Admin"),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value != null) {
-                                vm.updateUserRole(user, value);
-                              }
-                            },
-                          ),
-                        ),
-                        DataCell(
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
                             tooltip: "Delete User",
-                            onPressed: () {
-                              vm.deleteUser(user);
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15),
+                                    ),
+                                    backgroundColor: const Color(0xFF0A2A44), // Tarami blue
+                                    title: const Text(
+                                      "Confirm Delete",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    content: Text(
+                                      "Are you sure you want to delete ${user.name}?",
+                                      style: const TextStyle(color: Colors.white),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(false),
+                                        child: const Text(
+                                          "Cancel",
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                            BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(true),
+                                        child: const Text("Delete"),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+
+                              if (confirm == true) {
+                                vm.deleteUser(user);
+                              }
                             },
                           ),
                         ),

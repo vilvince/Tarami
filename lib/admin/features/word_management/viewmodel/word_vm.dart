@@ -24,10 +24,42 @@ class WordVM extends ChangeNotifier {
     ],
   };
 
+  // Selection mode & selected words
+  bool selectionMode = false;
+  List<String> selectedWords = [];
+
   List<WordModel> get words => _words[selectedDialect] ?? [];
 
   void setDialect(String dialect) {
     selectedDialect = dialect;
+    cancelSelectionMode(); // reset selection
     notifyListeners();
+  }
+
+  void toggleSelectionMode() {
+    selectionMode = !selectionMode;
+    if (!selectionMode) selectedWords.clear();
+    notifyListeners();
+  }
+
+  void cancelSelectionMode() {
+    selectionMode = false;
+    selectedWords.clear();
+    notifyListeners();
+  }
+
+  void toggleWordSelection(String word) {
+    if (selectedWords.contains(word)) {
+      selectedWords.remove(word);
+    } else {
+      selectedWords.add(word);
+    }
+    notifyListeners();
+  }
+
+  void deleteSelectedWords() {
+    _words[selectedDialect]
+        ?.removeWhere((wordModel) => selectedWords.contains(wordModel.word));
+    cancelSelectionMode();
   }
 }

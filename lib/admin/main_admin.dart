@@ -16,8 +16,6 @@ import 'features/submissions/pages/submission_page.dart';
 import 'features/word_management/viewmodel/word_vm.dart';
 import 'features/word_management/pages/word_page.dart';
 
-
-
 void main() {
   runApp(const AdminApp());
 }
@@ -40,7 +38,19 @@ class AdminApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Tarami Admin',
-        theme: buildAdminTheme(),
+        theme: buildAdminTheme().copyWith(
+          // ✅ REMOVE PAGE TRANSITIONS GLOBALLY
+          pageTransitionsTheme: const PageTransitionsTheme(
+            builders: {
+              TargetPlatform.android: NoTransitionsBuilder(),
+              TargetPlatform.iOS: NoTransitionsBuilder(),
+              TargetPlatform.windows: NoTransitionsBuilder(),
+              TargetPlatform.linux: NoTransitionsBuilder(),
+              TargetPlatform.macOS: NoTransitionsBuilder(),
+              TargetPlatform.fuchsia: NoTransitionsBuilder(),
+            },
+          ),
+        ),
         initialRoute: '/admin/home',
         routes: {
           '/admin/trivia': (_) => const TriviaPage(),
@@ -53,5 +63,21 @@ class AdminApp extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+// ✅ Transition remover
+class NoTransitionsBuilder extends PageTransitionsBuilder {
+  const NoTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+      PageRoute<T> route,
+      BuildContext context,
+      Animation<double> animation,
+      Animation<double> secondaryAnimation,
+      Widget child,
+      ) {
+    return child;
   }
 }

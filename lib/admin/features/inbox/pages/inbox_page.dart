@@ -4,9 +4,17 @@ import 'package:provider/provider.dart';
 import '../viewmodel/inbox_vm.dart';
 import '../data/inbox_model.dart';
 import '../../../layout/admin_scaffold.dart';
+import '../../../shared/theme.dart'; // brandNavy
 
-class InboxPage extends StatelessWidget {
+class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
+
+  @override
+  State<InboxPage> createState() => _InboxPageState();
+}
+
+class _InboxPageState extends State<InboxPage> {
+  String selectedFilterRange = "Week"; // Default filter range
 
   @override
   Widget build(BuildContext context) {
@@ -21,195 +29,11 @@ class InboxPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 10),
-
-              // Top row: filter chips + entries/filters
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _buildFilterTab(context, vm, "All", radius: 12),
-                  const SizedBox(width: 10),
-                  _buildFilterTab(context, vm, "Pending", radius: 12),
-                  const SizedBox(width: 10),
-                  _buildFilterTab(context, vm, "Reviewed", radius: 12),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      const Text("Show"),
-                      const SizedBox(width: 6),
-                      DropdownButton<int>(
-                        value: vm.rowsPerPage,
-                        underline: const SizedBox(),
-                        items: const [
-                          DropdownMenuItem(value: 5, child: Text("5")),
-                          DropdownMenuItem(value: 10, child: Text("10")),
-                          DropdownMenuItem(value: 20, child: Text("20")),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) vm.updateRowsPerPage(v);
-                        },
-                      ),
-                      const SizedBox(width: 6),
-                      const Text("entries"),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.filter_list, size: 18),
-                        label: const Text("Filters"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0A2A44),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-
+              _buildFilters(vm),
               const SizedBox(height: 20),
-
-              // Table container
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.black12),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: DataTable(
-                    headingRowColor:
-                    MaterialStateProperty.all(Colors.grey.shade100),
-                    columnSpacing: 10,
-                    dataRowHeight: 64,
-                    headingTextStyle: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                    columns: const [
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Email")))),
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Submitted Words")))),
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Dialect")))),
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Translation")))),
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Date")))),
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Part of Speech")))),
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Status")))),
-                      DataColumn(
-                          label: Expanded(
-                              child: Center(child: Text("Action")))),
-                    ],
-                    rows: vm.paginatedItems.map<DataRow>((InboxItem item) {
-                      return DataRow(
-                        color: MaterialStateProperty.resolveWith<Color?>(
-                                (states) {
-                              if (states.contains(MaterialState.hovered)) {
-                                return Colors.grey.shade50;
-                              }
-                              return null;
-                            }),
-                        cells: [
-                          _flexCell(Text(item.email,
-                              style: const TextStyle(fontSize: 13))),
-                          _flexCell(Text(item.submittedWord)),
-                          _flexCell(Text(item.dialect)),
-                          _flexCell(Text(item.translation)),
-                          _flexCell(Text(item.date)),
-                          _flexCell(Text(item.partOfSpeech)),
-                          _flexCell(StatusBadge(status: item.status)),
-                          _flexCell(
-                            IconButton(
-                              icon: const Icon(Icons.more_horiz, size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints:
-                              const BoxConstraints(minWidth: 40),
-                              onPressed: () {},
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-
+              _buildTable(vm),
               const SizedBox(height: 20),
-
-              // Pagination
-              Builder(builder: (ctx) {
-                final total = vm.totalPages;
-                int start = 1;
-                int end = math.min(total, 5);
-                if (vm.currentPage > 3 && total > 5) {
-                  start = vm.currentPage - 2;
-                  end = math.min(vm.currentPage + 2, total);
-                }
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    TextButton(
-                      onPressed: vm.currentPage > 1 ? vm.prevPage : null,
-                      child: const Text("Previous"),
-                    ),
-                    const SizedBox(width: 8),
-                    for (int p = start; p <= end; p++) ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: p == vm.currentPage
-                                ? const Color(0xFF6A4CFF)
-                                : Colors.white,
-                            foregroundColor: p == vm.currentPage
-                                ? Colors.white
-                                : Colors.black87,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          onPressed: () => vm.goToPage(p),
-                          child: Text("$p"),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(width: 8),
-                    TextButton(
-                      onPressed:
-                      vm.currentPage < vm.totalPages ? vm.nextPage : null,
-                      child: const Text("Next"),
-                    ),
-                  ],
-                );
-              }),
+              _buildPagination(vm),
             ],
           ),
         ),
@@ -217,15 +41,57 @@ class InboxPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterTab(BuildContext context, InboxVM vm, String label,
-      {double radius = 20}) {
+  Widget _buildFilters(InboxVM vm) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildFilterTab(vm, "All", radius: 12),
+        const SizedBox(width: 10),
+        _buildFilterTab(vm, "Pending", radius: 12),
+        const SizedBox(width: 10),
+        _buildFilterTab(vm, "Reviewed", radius: 12),
+        const Spacer(),
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            setState(() {
+              selectedFilterRange = value;
+            });
+          },
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: "Week", child: Text("Week")),
+            PopupMenuItem(value: "Month", child: Text("Month")),
+            PopupMenuItem(value: "Year", child: Text("Year")),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: brandNavy,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.filter_list_alt, color: Colors.white, size: 18),
+                SizedBox(width: 6),
+                Text("Filters", style: TextStyle(color: Colors.white)),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_drop_down, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterTab(InboxVM vm, String label, {double radius = 20}) {
     final selected = vm.selectedFilter == label;
     return GestureDetector(
       onTap: () => vm.setFilter(label),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF0A2A44) : Colors.white,
+          color: selected ? brandNavy : Colors.white,
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(color: Colors.black12),
         ),
@@ -239,52 +105,289 @@ class InboxPage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildTable(InboxVM vm) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black12),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.grey.shade100),
+          columnSpacing: 10,
+          dataRowHeight: 64,
+          headingTextStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Colors.black87,
+          ),
+          columns: const [
+            DataColumn(label: Expanded(child: Center(child: Text("Email")))),
+            DataColumn(label: Expanded(child: Center(child: Text("Submitted Words")))),
+            DataColumn(label: Expanded(child: Center(child: Text("Dialect")))),
+            DataColumn(label: Expanded(child: Center(child: Text("Translation")))),
+            DataColumn(label: Expanded(child: Center(child: Text("Date")))),
+            DataColumn(label: Expanded(child: Center(child: Text("Part of Speech")))),
+            DataColumn(label: Expanded(child: Center(child: Text("Status")))),
+            DataColumn(label: Expanded(child: Center(child: Text("Action")))),
+          ],
+          rows: vm.paginatedItems.map<DataRow>((InboxItem item) {
+            return DataRow(
+              cells: [
+                _flexCell(Text(item.email, style: const TextStyle(fontSize: 13))),
+                _flexCell(Text(item.submittedWord)),
+                _flexCell(Text(item.dialect)),
+                _flexCell(Text(item.translation)),
+                _flexCell(Text(item.date)),
+                _flexCell(Text(item.partOfSpeech)),
+                _flexCell(StatusBadge(status: item.status)),
+                _flexCell(
+                  IconButton(
+                    icon: const Icon(Icons.more_horiz, size: 20),
+                    onPressed: () => _showActionModal(context, item),
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  void _showActionModal(BuildContext context, InboxItem item) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: brandNavy, // 🔹 Solid Tarami blue
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Stack(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              width: 450,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Text(
+                        "Details for ${item.email}",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                    buildDetailRow("Dialect", item.dialect),
+                    buildDetailRow("Word", item.submittedWord),
+                    buildDetailRow("Translation", item.translation),
+                    buildDetailRow("Phonetic", item.phonetic ?? ""),
+                    buildDetailRow("Tagalog", item.tagalog ?? ""),
+                    buildDetailRow("Part of Speech", item.partOfSpeech),
+                    buildDetailRow("Definition", item.definition ?? ""),
+                    buildDetailRow("Example", item.example ?? ""),
+                    buildDetailRow("Synonyms", item.synonyms ?? ""),
+                    if ((item.etymology ?? "").isNotEmpty)
+                      buildDetailRow("Etymology", item.etymology ?? ""),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() => item.status = "Reviewed");
+                            _showSuccessModal(context, "Approved → Reviewed for ${item.email}");
+                          },
+                          child: const Text("Approve", style: TextStyle(color: Colors.white)),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade700,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() => item.status = "Reviewed");
+                            _showSuccessModal(context, "Denied → Reviewed for ${item.email}");
+                          },
+                          child: const Text("Deny", style: TextStyle(color: Colors.white)),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade700,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() => item.status = "Reviewed");
+                            _showSuccessModal(context, "Flagged → Reviewed for ${item.email}");
+                          },
+                          child: const Text("Flag", style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessModal(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: brandNavy,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 60),
+              const SizedBox(height: 20),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              "$label:",
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPagination(InboxVM vm) {
+    final total = vm.totalPages;
+    int start = 1;
+    int end = math.min(total, 5);
+    if (vm.currentPage > 3 && total > 5) {
+      start = vm.currentPage - 2;
+      end = math.min(vm.currentPage + 2, total);
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextButton(
+          onPressed: vm.currentPage > 1 ? vm.prevPage : null,
+          child: const Text("Previous"),
+        ),
+        const SizedBox(width: 8),
+        for (int p = start; p <= end; p++)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: p == vm.currentPage ? brandNavy : Colors.white,
+                foregroundColor: p == vm.currentPage ? Colors.white : Colors.black87,
+                elevation: 0,
+              ),
+              onPressed: () => vm.goToPage(p),
+              child: Text("$p"),
+            ),
+          ),
+        const SizedBox(width: 8),
+        TextButton(
+          onPressed: vm.currentPage < vm.totalPages ? vm.nextPage : null,
+          child: const Text("Next"),
+        ),
+      ],
+    );
+  }
 }
 
-// --------------------
 // Helpers
-// --------------------
-DataCell _flexCell(Widget child) {
-  return DataCell(
-    Expanded(child: Center(child: child)),
-  );
-}
+DataCell _flexCell(Widget child) => DataCell(Center(child: child));
 
-// --------------------
-// Pill-Style Status Badge
-// --------------------
 class StatusBadge extends StatelessWidget {
   final String status;
-
   const StatusBadge({super.key, required this.status});
 
   @override
   Widget build(BuildContext context) {
-    final isReviewed = status == "Reviewed";
+    final bgColor = status == "Reviewed" ? Colors.green.shade50 : Colors.orange.shade50;
+    final textColor = status == "Reviewed" ? Colors.green.shade700 : Colors.orange.shade700;
 
-    // Colors for different statuses
-    final bgColor = isReviewed ? Colors.green.shade50 : Colors.orange.shade50;
-    final textColor =
-    isReviewed ? Colors.green.shade700 : Colors.orange.shade700;
-
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 14, // lapad para pill effect
-          vertical: 6, // taas para balanced height
-        ),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(30), // pill shape
-        ),
-        child: Text(
-          status,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
       ),
     );
   }

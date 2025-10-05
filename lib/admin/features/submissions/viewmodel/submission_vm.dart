@@ -4,7 +4,7 @@ import '../data/submission_model.dart';
 class SubmissionVM extends ChangeNotifier {
   String selectedFilter = "Approved";
   int currentPage = 1;
-  final int itemsPerPage = 10;
+  int rowsPerPage = 10; // ✅ Now adjustable
 
   final List<SubmissionModel> _submissions = [
     SubmissionModel(
@@ -42,8 +42,8 @@ class SubmissionVM extends ChangeNotifier {
   }
 
   List<SubmissionModel> get paginatedItems {
-    final start = (currentPage - 1) * itemsPerPage;
-    final end = start + itemsPerPage;
+    final start = (currentPage - 1) * rowsPerPage;
+    final end = start + rowsPerPage;
     return filteredItems.sublist(
       start,
       end > filteredItems.length ? filteredItems.length : end,
@@ -51,10 +51,16 @@ class SubmissionVM extends ChangeNotifier {
   }
 
   int get totalPages =>
-      (filteredItems.length / itemsPerPage).ceil().clamp(1, double.infinity).toInt();
+      (filteredItems.length / rowsPerPage).ceil().clamp(1, double.infinity).toInt();
 
   void setFilter(String filter) {
     selectedFilter = filter;
+    currentPage = 1;
+    notifyListeners();
+  }
+
+  void setRowsPerPage(int value) {   // ✅ New
+    rowsPerPage = value;
     currentPage = 1;
     notifyListeners();
   }
@@ -69,6 +75,12 @@ class SubmissionVM extends ChangeNotifier {
   void prevPage() {
     if (currentPage > 1) {
       currentPage--;
+      notifyListeners();
+    }
+  }
+  void goToPage(int page) {
+    if (page >= 1 && page <= totalPages) {
+      currentPage = page;
       notifyListeners();
     }
   }
