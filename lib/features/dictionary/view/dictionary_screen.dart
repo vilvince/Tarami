@@ -14,6 +14,8 @@ class Dictionary extends StatefulWidget {
 
 class _DictionaryState extends State<Dictionary> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearchLocked = false;
+
 
   @override
   void dispose() {
@@ -112,7 +114,7 @@ class _DictionaryState extends State<Dictionary> {
     );
   }
 
-  
+
   Widget _buildSynonyms(DictionaryViewModel viewModel, String word) {
     final synonymsList = viewModel.getSynonyms(word);
 
@@ -150,7 +152,11 @@ class _DictionaryState extends State<Dictionary> {
 
 
   Widget _buildSearchBar() {
-    return Container(
+    return GestureDetector(
+        onTap: () {
+          setState(() => _isSearchLocked = false); // Unlock on tap
+        },
+    child:  Container(
       height: 50,
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -171,16 +177,16 @@ class _DictionaryState extends State<Dictionary> {
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
+              readOnly: _isSearchLocked,
+              cursorColor: Colors.black,
               controller: _searchController, // ✅ attach controller here
               textAlign: TextAlign.left,
               textAlignVertical: TextAlignVertical.center,
               onChanged: (query) {
                 final vm = context.read<DictionaryViewModel>();
-
                 if (vm.selectedWord != null) {
                   vm.selectWord(null);
                 }
-
                 vm.searchWords(query);
                 setState(() {}); // rebuild to show/hide ❌ button
               },
@@ -193,8 +199,10 @@ class _DictionaryState extends State<Dictionary> {
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
+                suffixIcon: _isSearchLocked
+                    ? null
+                    : _searchController.text.isNotEmpty
+                         ? IconButton(
                   icon: const Icon(Icons.close, color: Colors.grey, size: 22),
                   onPressed: () {
                     _searchController.clear();
@@ -206,10 +214,12 @@ class _DictionaryState extends State<Dictionary> {
                     : const Icon(Icons.mic, color: Colors.grey, size: 25),
               ),
               style: const TextStyle(color: Colors.black87),
+              onTap: () => setState(() => _isSearchLocked = false), // ✅ Unlock
             ),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -304,7 +314,14 @@ class _DictionaryState extends State<Dictionary> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          onTap: () => viewModel.selectWord(viewModel.currentWordList[index]),
+          onTap: () {
+            if (viewModel.searchQuery.isNotEmpty) {
+              _searchController.text = viewModel.currentWordList[index];
+              setState(() => _isSearchLocked = true);
+            }
+            FocusScope.of(context).unfocus();
+            viewModel.selectWord(viewModel.currentWordList[index]);
+          },
         );
       },
     );

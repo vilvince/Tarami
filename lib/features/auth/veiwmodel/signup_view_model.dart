@@ -7,6 +7,10 @@ class SignUpViewModel extends ChangeNotifier {
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
+  final emailFocusNode = FocusNode();
+  final passwordFocusNode = FocusNode();
+  final confirmPasswordFocusNode = FocusNode();
+
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
   bool agreeToTerms = false;
@@ -213,6 +217,11 @@ class SignUpViewModel extends ChangeNotifier {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+
+    emailFocusNode.dispose();
+    passwordFocusNode.dispose();
+    confirmPasswordFocusNode.dispose();
+
     super.dispose();
   }
 }

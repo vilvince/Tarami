@@ -8,6 +8,24 @@ import 'package:tarami_application/features/auth/veiwmodel/signup_view_model.dar
 import 'package:tarami_application/core/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// --- InstantRoute Definition ---
+// This custom route builder provides an instantaneous transition by setting
+// the duration to zero.
+class InstantRoute<T> extends PageRouteBuilder<T> {
+  final Widget page;
+
+  InstantRoute({required this.page})
+      : super(
+    // Set both durations to zero for a hard cut
+    transitionDuration: Duration.zero,
+    reverseTransitionDuration: Duration.zero,
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return child; // Just return the child without any transition effect
+    },
+  );
+}
+
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -78,6 +96,7 @@ class LoginPageContent extends StatelessWidget {
                               controller: viewModel.emailController,
                               cursorColor: Colors.black,
                               keyboardType: TextInputType.emailAddress,
+                              autofocus: false,
                               textInputAction: TextInputAction.next,
                               enabled: !viewModel.isLoading,
                               decoration: InputDecoration(
@@ -218,8 +237,9 @@ class LoginPageContent extends StatelessWidget {
                : () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const SignUpPage(),
+                  // FIX: Use InstantRoute for a hard cut/no animation transition
+                  InstantRoute(
+                    page: const SignUpPage(),
                   ),
                 );
               },

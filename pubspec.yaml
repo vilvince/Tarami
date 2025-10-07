@@ -45,14 +45,34 @@ dependencies:
   firebase_core: ^2.30.1
   firebase_auth: ^4.17.9
   dropdown_button2: ^2.3.9
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  another_flushbar: ^1.12.30
+  connectivity_plus: ^5.0.2
+  shared_preferences: ^2.2.2
 
 
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/splashScreens.png
+  image: "assets/taramiLogo1.png"
+  android: true
+  ios: false
+  web: false
+  fullscreen: true
+  color_dark: "#FFFFFF" # Global dark mode background color
+  android_gravity: fill
+  branding: assets/branding.png
+  branding_dark: assets/taramiLogo5.png
+
   android_12:
-    image: assets/splashScreens.png
+    image: "assets/taramiLogo3.png"
+    color: "#FFFFFF"         # Light mode background color
+    color_dark: "#0d2334"    # Forces white background in dark mode
     icon_background_color: "#FFFFFF"
+    icon_background_color_dark: "#0d2334"
+    branding: assets/branding.png
+    branding_dark: assets/taramiLogo5.png
+
 
 
 flutter_launcher_icons:
@@ -89,6 +109,14 @@ flutter:
    - assets/malepfp.jpg
    - assets/girlpfp.jpg
    - assets/grey.jpg
+   - assets/taramiSplashScreen.png
+   - assets/taramiSplashScreen1.png
+   - assets/splashScreens1.png
+   - assets/taramiLogo1.png
+   - assets/taramiLogo2.png
+   - assets/taramiLogo3.png
+   - assets/branding.png
+   - assets/taramiLogo5.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

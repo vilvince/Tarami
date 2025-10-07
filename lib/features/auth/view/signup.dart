@@ -15,6 +15,7 @@ class SignUpPage extends StatelessWidget {
       child: Consumer<SignUpViewModel>(
         builder: (context, vm, child) => Scaffold(
           backgroundColor: Colors.white,
+          resizeToAvoidBottomInset: true,
           body: SafeArea(
             child: Column(
               children: [
@@ -59,12 +60,26 @@ class SignUpPage extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 TextField(
                                   controller: vm.emailController,
+                                  cursorColor: Colors.black,
+                                  textInputAction: TextInputAction.next,
+                                  keyboardType: TextInputType.emailAddress,
+                                  focusNode: vm.emailFocusNode,
+                                  onSubmitted: (_) {           // <--- Add focus change logic
+                                    FocusScope.of(context).requestFocus(vm.passwordFocusNode);
+                                  },
                                   decoration: InputDecoration(
                                     isDense: true,
                                     contentPadding: const EdgeInsets.symmetric(
                                         vertical: 12, horizontal: 12),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: Colors.black,
+                                        width: 2.0,
+                                      ),
                                     ),
                                     errorText: vm.emailError,
                                   ),
@@ -75,12 +90,25 @@ class SignUpPage extends StatelessWidget {
                                 TextField(
                                   controller: vm.passwordController,
                                   obscureText: vm.obscurePassword,
+                                  cursorColor: Colors.black,
+                                  textInputAction: TextInputAction.next,
+                                  focusNode: vm.passwordFocusNode, // <--- Add FocusNode
+                                  onSubmitted: (_) {               // <--- Add focus change logic
+                                    FocusScope.of(context).requestFocus(vm.confirmPasswordFocusNode);
+                                  },
                                   decoration: InputDecoration(
                                     isDense: true,
                                     contentPadding: const EdgeInsets.symmetric(
                                         vertical: 12, horizontal: 12),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: Colors.black,
+                                        width: 2.0,
+                                      ),
                                     ),
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -99,12 +127,25 @@ class SignUpPage extends StatelessWidget {
                                 TextField(
                                   controller: vm.confirmPasswordController,
                                   obscureText: vm.obscureConfirmPassword,
+                                  textInputAction: TextInputAction.done,
+                                  cursorColor: Colors.black,
+                                  focusNode: vm.confirmPasswordFocusNode, // <--- Add FocusNode
+                                  onSubmitted: (_) {                       // <--- Optional: Dismiss keyboard or submit form
+                                    vm.confirmPasswordFocusNode.unfocus(); // Dismiss the keyboard
+                                  },
                                   decoration: InputDecoration(
                                     isDense: true,
                                     contentPadding: const EdgeInsets.symmetric(
                                         vertical: 12, horizontal: 12),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: Colors.black,
+                                        width: 2.0,
+                                      ),
                                     ),
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -184,25 +225,27 @@ class SignUpPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 40),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Already have an account? "),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text(
-                          "Log in",
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
+                // The Padding that was here has been removed from the Column children
+              ],
+            ),
+          ),
+          // FIX: Move the log in prompt to the Scaffold's bottomNavigationBar property
+          bottomNavigationBar: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("Already have an account? "),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    "Log in",
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ),
               ],

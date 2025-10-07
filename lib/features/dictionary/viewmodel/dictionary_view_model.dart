@@ -1,12 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:tarami_application/features/dictionary/model/dictionary_model.dart';
 import 'package:tarami_application/core/services/dictionary_services.dart';
-// Add this import for the new service
 import 'package:tarami_application/core/services/user_activity_servicess.dart';
+import 'package:tarami_application/core/services/connectivity_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DictionaryViewModel extends ChangeNotifier {
   final DictionaryService _dictionaryService = DictionaryService();
-  final UserActivityService _userActivityService = UserActivityService(); // Add this
+  final UserActivityService _userActivityService = UserActivityService();
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   // Dialect constants
   final List<String> _dialects = [
@@ -30,6 +34,17 @@ class DictionaryViewModel extends ChangeNotifier {
   Set<String> _favoriteWords = {};
   bool _isLoadingFavorites = false;
 
+  // Local storage key
+  static const String _favoritesKey = 'offline_favorites';
+
+
+  // ✅ NEW: Track offline pending favorites
+  Set<String> _pendingOfflineFavorites = {};
+
+  // ✅ NEW: Track connectivity state
+  bool _isOnline = true;
+
+
   // Getters
   List<String> get dialects => _dialects;
   int get selectedDialectIndex => _selectedDialectIndex;
@@ -43,6 +58,8 @@ class DictionaryViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   Set<String> get favoriteWords => _favoriteWords;
   bool get isLoadingFavorites => _isLoadingFavorites;
+  bool get isOnline => _isOnline;
+
 
   // Current word list for UI (returns word strings) - FILTERED BY DIALECT
   List<String> get currentWordList {
@@ -65,8 +82,65 @@ class DictionaryViewModel extends ChangeNotifier {
     await Future.wait([
       loadAllWords(),
       loadFavorites(),
+      _loadOfflinePendingFavorites(),
     ]);
+    // ✅ Start monitoring connectivity
+    _listenToConnectivity();
   }
+
+
+  // ✅ Listen for connectivity changes
+  void _listenToConnectivity() {
+    _connectivityService.connectivityStream.listen((result) async {
+      final wasOffline = !_isOnline;
+      _isOnline = result != ConnectivityResult.none;
+      notifyListeners();
+
+      if (wasOffline && _isOnline) {
+        print('🌐 Back online — syncing offline favorites...');
+        await syncFavoritesWhenOnline();
+      } else if (!_isOnline) {
+        print('⚠️ Went offline');
+      }
+    });
+  }
+
+  // ✅ Load offline pending favorites from local storage
+  Future<void> _loadOfflinePendingFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final offlineList = prefs.getStringList('pending_offline_favorites') ?? [];
+    _pendingOfflineFavorites = offlineList.toSet();
+    print('Loaded ${_pendingOfflineFavorites.length} pending offline favorites');
+  }
+
+  // ✅ Save pending offline favorites locally
+  Future<void> _saveOfflinePendingFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('pending_offline_favorites', _pendingOfflineFavorites.toList());
+  }
+
+  // ✅ Sync offline favorites when online again
+  Future<void> syncFavoritesWhenOnline() async {
+    if (_pendingOfflineFavorites.isEmpty) {
+      print('No offline favorites to sync');
+      return;
+    }
+
+    for (final word in _pendingOfflineFavorites) {
+      try {
+        await _userActivityService.toggleFavorite(word);
+        print('Synced offline favorite: $word');
+      } catch (e) {
+        print('Failed to sync $word: $e');
+      }
+    }
+
+    _pendingOfflineFavorites.clear();
+    await _saveOfflinePendingFavorites();
+    await loadFavorites(); // refresh from server
+    notifyListeners();
+  }
+
 
   // Load all words from Firebase
   Future<void> loadAllWords() async {
@@ -104,13 +178,14 @@ class DictionaryViewModel extends ChangeNotifier {
     }
   }
 
+
+
   // Search for words - NO LONGER ADDS TO RECENT
   Future<void> searchWords(String query) async {
     _searchQuery = query.trim();
 
     if (_searchQuery.isEmpty) {
-      // ✅ Instead of clearing, reset to full dictionary
-      _searchResults = _allWords;
+      _searchResults = [];
       notifyListeners();
       return;
     }
@@ -123,6 +198,9 @@ class DictionaryViewModel extends ChangeNotifier {
       print('Searching for: $_searchQuery');
       _searchResults = await _dictionaryService.searchWords(_searchQuery);
       print('Found ${_searchResults.length} results');
+
+      // NO LONGER adding search to recent here - only when word is clicked from search results
+
     } catch (e) {
       _errorMessage = 'Search failed: $e';
       print('Error searching: $e');
@@ -131,7 +209,6 @@ class DictionaryViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
-
 
   // Select a word to view details - ONLY ADDS TO RECENT IF FROM SEARCH!
   void selectWord(String? wordName) async {
@@ -167,7 +244,25 @@ class DictionaryViewModel extends ChangeNotifier {
 
   // Toggle favorite status for a word
   Future<void> toggleFavorite(String word) async {
+    final lowerWord = word.toLowerCase();
     try {
+      final hasConnection = await _connectivityService.isConnected();
+
+      if (!hasConnection) {
+        print('Offline — storing favorite locally: $lowerWord');
+        // Save offline
+        if (_favoriteWords.contains(lowerWord)) {
+          _favoriteWords.remove(lowerWord);
+        } else {
+          _favoriteWords.add(lowerWord);
+        }
+        _pendingOfflineFavorites.add(lowerWord);
+        await _saveOfflinePendingFavorites();
+        notifyListeners();
+        return;
+      }
+
+
       final newStatus = await _userActivityService.toggleFavorite(word);
 
       if (newStatus) {

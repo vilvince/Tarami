@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // <== Add this
+import 'package:provider/provider.dart';
 import 'package:tarami_application/features/user/view/quiz_start_screen.dart';
 import 'package:tarami_application/widgets/main_scaffold.dart';
 import 'package:tarami_application/features/user/view/submission_screen.dart';
@@ -15,13 +15,21 @@ import 'package:tarami_application/features/user/viewmodel/favorite_viewmodel.da
 import 'package:tarami_application/features/user/viewmodel/recent_viewmodel.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:tarami_application/features/auth/view/login.dart';
-import 'package:tarami_application/features/dictionary/viewmodel/dictionary_view_model.dart'; // ✅ correct path
+import 'package:tarami_application/features/dictionary/viewmodel/dictionary_view_model.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // Enable Firestore offline persistence
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,  // This enables offline caching
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,  // Unlimited cache (or set a specific size)
+  );
 
   runApp(
     MultiProvider(
@@ -46,12 +54,15 @@ class TaramiApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white,
-        textTheme: GoogleFonts.poppinsTextTheme(), // 👈 Set global font here
+        textTheme: GoogleFonts.poppinsTextTheme(),
         primarySwatch: Colors.blue,
-        useMaterial3: true, // optional, depending on your setup
+        useMaterial3: true,
         progressIndicatorTheme: const ProgressIndicatorThemeData(
-          color: Colors.white,              // 👈 active loader color
-          circularTrackColor: Color(0xFF0B1E2D), // 👈 background circle
+          color: Colors.white,
+          circularTrackColor: Color(0xFF0B1E2D),
+        ),
+        colorScheme: ColorScheme.light(
+          primary: Color(0xFFFFC107)
         ),
       ),
       home: StreamBuilder<User?>(

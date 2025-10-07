@@ -4,6 +4,7 @@ import 'package:tarami_application/features/home/viewmodel/home_viewmodel.dart';
 import 'package:tarami_application/features/dictionary/viewmodel/dictionary_view_model.dart';
 import 'package:tarami_application/features/dictionary/view/dictionary_screen.dart';
 import 'package:tarami_application/widgets/main_scaffold.dart';
+import 'dart:async';
 
 
 class HomeScreenPage extends StatefulWidget {
@@ -32,9 +33,12 @@ class HomeScreenContent extends StatefulWidget {
 
 class _HomeScreenContentState extends State<HomeScreenContent> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  Timer? _debounce;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -95,12 +99,17 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                       children: [
                         Expanded(
                           child: TextField(
+                            cursorColor: Colors.black,
                             controller: _searchController,
                             textAlign: TextAlign.left,
                             textAlignVertical: TextAlignVertical.center,
                             onChanged: (query) {
-                              dictVm.searchWords(query);
-                              setState(() {});
+                              if (_debounce?.isActive ?? false) _debounce!.cancel();
+                              setState(() => _isSearching = true);
+                              _debounce = Timer(const Duration(milliseconds: 100), () async {
+                                await dictVm.searchWords(query);
+                                setState(() => _isSearching = false ); // rebuild after debounce delay
+                              });
                             },
                             decoration: InputDecoration(
                               hintText: 'Search...',
@@ -134,49 +143,17 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   const SizedBox(height: 20),
 
                   // ✅ Search results (fixed height, scrolls inside only)
-                  if (_searchController.text.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 30),
-                      height: 250, // fixed height to avoid overflow
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.black26),
-                      ),
-                      child: ListView.builder(
-                        padding: EdgeInsets.zero,
-                        itemCount: dictVm.searchResults.length,
-                        itemBuilder: (context, index) {
-                          final entry = dictVm.searchResults[index];
-                          return Column(
-                            children: [
-                              ListTile(
-                                leading: const Icon(Icons.search,
-                                    size: 20, color: Colors.grey),
-                                title: Text(
-                                  entry.word,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                                onTap: () {
-                                  dictVm.selectWord(entry.word); // save the tapped word
-                                  // Switch to dictionary tab (index = 1)
-                                  MainScaffold.of(context)?.changeTab(1);
-                                },
-                              ),
-                              if (index < dictVm.searchResults.length - 1)
-                                const Divider(
-                                  height: 1,
-                                  thickness: 0.5,
-                                  indent: 48,
-                                  endIndent: 16,
-                                  color: Colors.black12,
-                                ),
-                            ],
-                          );
-                        },
-                      ),
+                  if (_searchController.text.isNotEmpty && dictVm.searchResults.isNotEmpty)
+                    _buildResultsList(dictVm)
+                  else if (_searchController.text.isNotEmpty &&
+                      dictVm.searchResults.isEmpty &&
+                      !_isSearching)
+                    const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          "No words found",
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
                     ),
                 ],
               ),
@@ -186,4 +163,43 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       ),
     );
   }
+  // ✅ Move this INSIDE the class
+  Widget _buildResultsList(DictionaryViewModel dictVm) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 30),
+      height: 250,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black26),
+      ),
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        itemCount: dictVm.searchResults.length,
+        itemBuilder: (context, index) {
+          final entry = dictVm.searchResults[index];
+          return Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.search, color: Colors.grey),
+                title: Text(entry.word),
+                onTap: () {
+                  dictVm.selectWord(entry.word);
+                  MainScaffold.of(context)?.changeTab(1);
+                },
+              ),
+              if (index < dictVm.searchResults.length - 1)
+                const Divider(
+                  height: 1,
+                  thickness: 0.5,
+                  indent: 48,
+                  endIndent: 16,
+                  color: Colors.black12,
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
 }

@@ -50,7 +50,7 @@ class DictionaryEntry {
       phonetics: data['phonetics'],
       tagalog: data['tagalog'],
       exampleSentence: data['example_sentence'],
-      synonyms: List<String>.from(data['synonyms'] ?? []),
+      synonyms: _parseSynonyms(data['synonyms']),
       translations: (data['translations'] as List<dynamic>?)
           ?.map((t) => Translation.fromMap(t as Map<String, dynamic>))
           .toList() ?? [],
@@ -58,6 +58,32 @@ class DictionaryEntry {
       hasTextToSpeech: data['has_text_to_speech'] ?? false,
       isActive: data['is_active'] ?? true,
     );
+  }
+
+  // Add this helper method to handle both String and List formats
+  static List<String> _parseSynonyms(dynamic synonymsData) {
+    if (synonymsData == null) {
+      return [];
+    }
+
+    // If it's already a List
+    if (synonymsData is List) {
+      return List<String>.from(synonymsData);
+    }
+
+    // If it's a String (comma-separated)
+    if (synonymsData is String) {
+      if (synonymsData.trim().isEmpty) {
+        return [];
+      }
+      return synonymsData
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+    }
+
+    return [];
   }
 
   // Get translation for specific dialect
