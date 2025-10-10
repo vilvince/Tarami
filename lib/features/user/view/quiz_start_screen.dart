@@ -75,20 +75,31 @@ class _QuizStartViewState extends State<QuizStartView> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(Icons.wifi_off, color: Colors.orange[700]),
-            //  const SizedBox(width: 10),
-              const Text('No Internet Connection'),
+              Icon(Icons.wifi_off, color: Colors.redAccent),
+              const SizedBox(width: 10),
+              Expanded( // 👈 allows wrapping to avoid overflow
+                child: Text(
+                  'No Internet Connection',
+                  style: TextStyle(
+                    fontSize: 18, // 👈 adjust this to change text size
+                    fontWeight: FontWeight.bold,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ),
             ],
           ),
           content: const Text(
-            'You need an internet connection to play the quiz. Please check your connection and try again.',
+            'You need an internet connection to play the games.',
             style: TextStyle(fontSize: 16),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('OK', style: TextStyle(fontSize: 16, color: Colors.orange[700])),
+              child: Text('OK', style: TextStyle(fontSize: 19, color: Color(
+                  0xFF000000))),
             ),
           ],
         );
@@ -113,28 +124,6 @@ class _QuizStartViewState extends State<QuizStartView> {
         body: SafeArea(
           child: Column(
             children: [
-              // Offline banner
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: Colors.orange[100],
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.wifi_off, size: 18, color: Colors.orange[800]),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Offline - Internet required to play',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.orange[800],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(color: Colors.white),
@@ -177,7 +166,7 @@ class _QuizStartViewState extends State<QuizStartView> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'You need an internet connection to load quiz questions and play the game.',
+                                'You need an internet connection to play the game.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 16,

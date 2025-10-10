@@ -50,26 +50,43 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(Icons.wifi_off, color: Colors.orange[700]),
+              Icon(Icons.wifi_off, color: Colors.redAccent),
               const SizedBox(width: 10),
-              const Text('No Internet Connection'),
+              Expanded( // 👈 allows wrapping to avoid overflow
+                child: Text(
+                  'No Internet Connection',
+                  style: TextStyle(
+                    fontSize: 18, // 👈 adjust this to change text size
+                    fontWeight: FontWeight.bold,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ),
             ],
           ),
           content: const Text(
-            'You need an internet connection to submit a word contribution. Please check your connection and try again.',
+            'You need an internet connection to contribute a new word.',
             style: TextStyle(fontSize: 16),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('OK', style: TextStyle(fontSize: 16, color: Colors.orange[700])),
+              child: const Text(
+                'OK',
+                style: TextStyle(
+                  fontSize: 19,
+                  color: Colors.black,
+                ),
+              ),
             ),
           ],
         );
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +114,13 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
               ),
             ),
             child: Scaffold(
-              backgroundColor: const Color(0xFF0d2334),
+              backgroundColor: const Color(0xff12283b),
               body: _isOnline
                   ? _buildContributeForm(context, vm)
-                  : _buildOfflineContent(),
+                  : Scaffold(
+                    backgroundColor: Colors.white,
+                    body: _buildOfflineContent(),
+              ),
             ),
           );
         },
@@ -122,14 +142,14 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.black,
             ),
           ),
           const SizedBox(height: 16),
           Text(
             'You need an internet connection to submit a word contribution.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.grey[300]),
+            style: TextStyle(fontSize: 16, color: Colors.black),
           ),
           const SizedBox(height: 32),
           SizedBox(
@@ -193,7 +213,7 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.orange[800],
+                    color: Color(0xFF0C2748),
                   ),
                 ),
               ],

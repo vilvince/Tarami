@@ -79,6 +79,10 @@ class DictionaryViewModel extends ChangeNotifier {
   // Initialize the dictionary
   Future<void> initialize() async {
     print('Initializing Dictionary ViewModel...');
+
+    // Check connectivity first
+    _isOnline = await _connectivityService.isConnected();
+
     await Future.wait([
       loadAllWords(),
       loadFavorites(),
@@ -150,9 +154,27 @@ class DictionaryViewModel extends ChangeNotifier {
 
     try {
       print('Loading words from Firebase...');
-      _allWords = await _dictionaryService.getAllWords();
-      print('Loaded ${_allWords.length} words successfully');
-    } catch (e) {
+
+      // Check if online before attempting to fetch
+      final isConnected = await _connectivityService.isConnected();
+      if (!isConnected) {
+        print('⚠️ Offline - Loading from Firestore cache only');
+        // Force load from cache with timeout
+        try {
+          _allWords = await _dictionaryService.getAllWords()
+              .timeout(Duration(seconds: 2)); // Short timeout for cache
+          print('Loaded ${_allWords.length} words from cache');
+        }catch (e) {
+          print('No cached words available: $e');
+          _errorMessage = 'No cached words. Connect to internet to load dictionary.';
+        }
+      } else {
+        print('🌐 Online - Loading from Firestore');
+        // Normal fetch when online
+        _allWords = await _dictionaryService.getAllWords();
+        print('Loaded ${_allWords.length} words successfully');
+      }
+    }catch (e) {
       _errorMessage = 'Failed to load dictionary: $e';
       print('Error loading words: $e');
     } finally {
@@ -167,18 +189,40 @@ class DictionaryViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final favorites = await _userActivityService.getFavoriteWords();
-      _favoriteWords = favorites.map((word) => word.toLowerCase()).toSet();
-      print('Loaded ${_favoriteWords.length} favorite words');
+      // Check connectivity first
+      final isConnected = await _connectivityService.isConnected();
+      if (!isConnected) {
+        print('⚠️ Offline - Loading favorites from local storage');
+        // Load from local storage
+        final prefs = await SharedPreferences.getInstance();
+        final favoritesList = prefs.getStringList(_favoritesKey) ?? [];
+        _favoriteWords = favoritesList.map((w) => w.toLowerCase()).toSet();
+        print('Loaded ${_favoriteWords.length} favorites from local storage');
+      }else {
+        print('🌐 Online - Loading favorites from Firestore');
+        // Load from Firestore
+        final favorites = await _userActivityService.getFavoriteWords();
+        _favoriteWords = favorites.map((word) => word.toLowerCase()).toSet();
+        // Save to local storage for offline access
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList(_favoritesKey, _favoriteWords.toList());
+        print('Loaded ${_favoriteWords.length} favorite words');
+      }
     } catch (e) {
       print('Error loading favorites: $e');
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final favoritesList = prefs.getStringList(_favoritesKey) ?? [];
+        _favoriteWords = favoritesList.map((w) => w.toLowerCase()).toSet();
+        print('Loaded ${_favoriteWords.length} favorites from local storage (fallback)');
+      } catch (localError) {
+        print('Failed to load favorites from local storage: $localError');
+      }
     } finally {
       _isLoadingFavorites = false;
       notifyListeners();
     }
   }
-
-
 
   // Search for words - NO LONGER ADDS TO RECENT
   Future<void> searchWords(String query) async {
@@ -196,11 +240,17 @@ class DictionaryViewModel extends ChangeNotifier {
 
     try {
       print('Searching for: $_searchQuery');
-      _searchResults = await _dictionaryService.searchWords(_searchQuery);
+
+      // Check connectivity for search timeout
+      final isConnected = await _connectivityService.isConnected();
+      if (!isConnected) {
+        // Use shorter timeout when offline (search from cache)
+        _searchResults = await _dictionaryService.searchWords(_searchQuery)
+            .timeout(Duration(seconds: 2));
+      } else {
+        _searchResults = await _dictionaryService.searchWords(_searchQuery);
+      }
       print('Found ${_searchResults.length} results');
-
-      // NO LONGER adding search to recent here - only when word is clicked from search results
-
     } catch (e) {
       _errorMessage = 'Search failed: $e';
       print('Error searching: $e');
@@ -210,7 +260,7 @@ class DictionaryViewModel extends ChangeNotifier {
     }
   }
 
-  // Select a word to view details - ONLY ADDS TO RECENT IF FROM SEARCH!
+  // Select a word to view details
   void selectWord(String? wordName) async {
     if (wordName == null) {
       _selectedWordEntry = null;
@@ -256,20 +306,28 @@ class DictionaryViewModel extends ChangeNotifier {
         } else {
           _favoriteWords.add(lowerWord);
         }
+        // ✅ Save to local storage
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setStringList(_favoritesKey, _favoriteWords.toList());
+
         _pendingOfflineFavorites.add(lowerWord);
         await _saveOfflinePendingFavorites();
+
         notifyListeners();
         return;
       }
-
-
+      // Online - sync to Firestore
       final newStatus = await _userActivityService.toggleFavorite(word);
 
       if (newStatus) {
-        _favoriteWords.add(word.toLowerCase());
+        _favoriteWords.add(lowerWord);
       } else {
-        _favoriteWords.remove(word.toLowerCase());
+        _favoriteWords.remove(lowerWord);
       }
+
+      // Save to local storage
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_favoritesKey, _favoriteWords.toList());
 
       notifyListeners();
       print('Toggled favorite for "$word" - now ${newStatus ? 'favorited' : 'unfavorited'}');

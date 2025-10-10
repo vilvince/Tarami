@@ -128,23 +128,36 @@ class _DictionaryState extends State<Dictionary> {
     return Wrap(
       spacing: 6.0,
       runSpacing: 4.0,
-      children: synonymsList.map((syn) {
+      children: List.generate(synonymsList.length, (index) {
+        final syn = synonymsList[index];
         final exists = viewModel.currentWordList
             .map((w) => w.toLowerCase().trim())
-            .contains(syn.toLowerCase().trim()); // ✅ safe check
+            .contains(syn.toLowerCase().trim());
 
         return GestureDetector(
           onTap: exists ? () => viewModel.selectWord(syn) : null,
-          child: Text(
-            syn,
-            style: TextStyle(
-              fontSize: 18,
-              color: exists ? Colors.blueAccent : Colors.grey,
-              decoration: exists ? TextDecoration.underline : TextDecoration.none,
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontSize: 18,
+                color: exists ? Colors.blueAccent : Colors.black,
+                decoration: exists ? TextDecoration.underline : TextDecoration.none,
+              ),
+              children: [
+                TextSpan(text: syn),
+                if (index < synonymsList.length - 1)
+                  const TextSpan(
+                    text: ',',
+                    style: TextStyle(
+                      color: Colors.black,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+              ],
             ),
           ),
         );
-      }).toList(),
+      }),
     );
   }
 
@@ -347,48 +360,42 @@ class _DictionaryState extends State<Dictionary> {
         children: [
           // Word Title
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 55),
-            child: Padding(
-              padding: const EdgeInsets.only(top: 26),
+            padding: const EdgeInsets.only(top: 26),
+            child: Center(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min, // 👈 shrinks to fit content (word + icon)
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          word,
-                          style: const TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                      ],
+                  Flexible(
+                    child: Text(
+                      word,
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis, // prevents overflow on super long words
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: GestureDetector(
-                      onTap: () {
-                        // Toggle favorite status
-                        viewModel.toggleFavorite(word);
-                      },
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          viewModel.isFavorite(word)
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          key: ValueKey(viewModel.isFavorite(word)),
-                          size: 28,
-                          color: viewModel.isFavorite(word)
-                              ? Colors.amber
-                              : Colors.black54,
-                        ),
+                  const SizedBox(width: 10), // small space between word and heart
+                  GestureDetector(
+                    onTap: () {
+                      viewModel.toggleFavorite(word);
+                    },
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 150),
+                      transitionBuilder: (child, animation) => ScaleTransition(
+                        scale: animation,
+                        child: child,
+                      ),
+                      child: Icon(
+                        viewModel.isFavorite(word)
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        key: ValueKey(viewModel.isFavorite(word)),
+                        size: 28,
+                        color: viewModel.isFavorite(word)
+                            ? Colors.amber
+                            : Colors.black54,
                       ),
                     ),
                   ),
@@ -400,7 +407,7 @@ class _DictionaryState extends State<Dictionary> {
 
           // Tagalog & POS
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            padding: const EdgeInsets.symmetric(horizontal: 13.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -518,9 +525,7 @@ class _DictionaryState extends State<Dictionary> {
                   const SizedBox(height: 8),
                   RichText(
                     text: TextSpan(
-                      // This is the BASE style for all text in this RichText.
-                      // It should NOT contain fontWeight if you want children to override it easily.
-                      // Or, if it does, ensure it's a "normal" weight that bold can override.
+
                       style: DefaultTextStyle.of(context).style.copyWith( // Inherit default text style
                         fontSize: 18,
                         color: Colors.black, // Or your desired default color for this section
