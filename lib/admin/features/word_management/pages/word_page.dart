@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../viewmodel/word_vm.dart';
 import '../../../layout/admin_scaffold.dart';
 
+// 🔹 Define Tarami Navy Blue (replace hex if you have exact branding color)
+const taramiNavyBlue = Color(0xFF0A1F44);
+
 class WordPage extends StatelessWidget {
   const WordPage({super.key});
 
@@ -15,8 +18,9 @@ class WordPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Dialect buttons
+          // 🔹 Dialect buttons (centered)
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _dialectButton(context, vm, "Central Bikol"),
               const SizedBox(width: 12),
@@ -29,15 +33,28 @@ class WordPage extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
-          // 🔹 Edit / Cancel button
+          // 🔹 Edit / Cancel button (right aligned)
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: vm.selectionMode ? Colors.red.shade700 : Colors.blue.shade700,
+                backgroundColor:
+                vm.selectionMode ? taramiNavyBlue : taramiNavyBlue,
+                foregroundColor: Colors.white, // Always white text
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               onPressed: vm.toggleSelectionMode,
-              child: Text(vm.selectionMode ? "Cancel" : "Edit"),
+              child: Text(
+                vm.selectionMode ? "Cancel" : "Edit",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
 
@@ -60,7 +77,8 @@ class WordPage extends StatelessWidget {
                   leading: vm.selectionMode
                       ? Checkbox(
                     value: isSelected,
-                    onChanged: (_) => vm.toggleWordSelection(word.word),
+                    onChanged: (_) =>
+                        vm.toggleWordSelection(word.word),
                   )
                       : null,
                   title: Text(word.word),
@@ -69,20 +87,29 @@ class WordPage extends StatelessWidget {
             ),
           ),
 
-          // 🔹 Delete selected button (only in selection mode)
+          // 🔹 Delete selected button (bottom right, only when in selection mode)
           if (vm.selectionMode && vm.selectedWords.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade700,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: vm.deleteSelectedWords,
                   child: const Text(
                     "Delete Selected",
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -96,7 +123,7 @@ class WordPage extends StatelessWidget {
     final isSelected = vm.selectedDialect == dialect;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.blue.shade900 : Colors.grey.shade400,
+        backgroundColor: isSelected ? taramiNavyBlue : Colors.grey.shade400,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

@@ -4,7 +4,7 @@ import '../data/submission_model.dart';
 class SubmissionVM extends ChangeNotifier {
   String selectedFilter = "Approved";
   int currentPage = 1;
-  int rowsPerPage = 10; // ✅ Now adjustable
+  int rowsPerPage = 10;
 
   final List<SubmissionModel> _submissions = [
     SubmissionModel(
@@ -15,24 +15,39 @@ class SubmissionVM extends ChangeNotifier {
       date: "03/25/2025",
       partOfSpeech: "Noun",
       status: "Approved",
+      phonetic: "fēt",
+      tagalog: "Paa",
+      definition: "The lower extremity of the leg below the ankle.",
+      example: "She hurt her foot while running.",
+      synonyms: "foot, extremity",
     ),
     SubmissionModel(
-      email: "example@email.com",
-      submittedWord: "Feet",
+      email: "user@email.com",
+      submittedWord: "Head",
       dialect: "West Miraya",
-      translation: "Bitis",
+      translation: "Ulo",
       date: "03/25/2025",
       partOfSpeech: "Noun",
       status: "Denied",
+      phonetic: "hed",
+      tagalog: "Ulo",
+      definition: "The upper part of the human body.",
+      example: "He nodded his head in agreement.",
+      synonyms: "cranium, skull",
     ),
     SubmissionModel(
-      email: "example@email.com",
-      submittedWord: "Feet",
+      email: "sample@email.com",
+      submittedWord: "Hand",
       dialect: "Libon Bikol",
-      translation: "Bitis",
+      translation: "Kamot",
       date: "03/25/2025",
       partOfSpeech: "Noun",
       status: "Flagged",
+      phonetic: "hand",
+      tagalog: "Kamay",
+      definition: "The end part of a person's arm.",
+      example: "She waved her hand.",
+      synonyms: "palm, fist",
     ),
   ];
 
@@ -59,7 +74,7 @@ class SubmissionVM extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setRowsPerPage(int value) {   // ✅ New
+  void setRowsPerPage(int value) {
     rowsPerPage = value;
     currentPage = 1;
     notifyListeners();
@@ -78,6 +93,7 @@ class SubmissionVM extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   void goToPage(int page) {
     if (page >= 1 && page <= totalPages) {
       currentPage = page;
