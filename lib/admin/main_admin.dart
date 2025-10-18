@@ -15,6 +15,9 @@ import 'features/submissions/viewmodel/submission_vm.dart';
 import 'features/submissions/pages/submission_page.dart';
 import 'features/word_management/viewmodel/word_vm.dart';
 import 'features/word_management/pages/word_page.dart';
+import 'package:tarami_application/app/login_page.dart';
+
+
 
 void main() {
   runApp(const AdminApp());
@@ -51,8 +54,9 @@ class AdminApp extends StatelessWidget {
             },
           ),
         ),
-        initialRoute: '/admin/home',
+        initialRoute: '/login',
         routes: {
+          '/login': (_) => const LoginPage(),
           '/admin/trivia': (_) => const TriviaPage(),
           '/admin/contribute': (_) => const ContributePage(),
           '/admin/home': (_) => const HomePage(),
