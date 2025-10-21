@@ -120,22 +120,25 @@ class AdminSidebar extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // User Info (sticky at the very bottom)
-          const ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 16),
-            leading: CircleAvatar(
+          // ✅ User Info (clickable, goes to /admin/profile)
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            leading: const CircleAvatar(
               backgroundColor: Colors.black12,
               child: Icon(Icons.person, color: Colors.black87),
             ),
-            title: Text(
+            title: const Text(
               'Admin',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            subtitle: Text(
+            subtitle: const Text(
               'admin@gmail.com',
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12),
             ),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/admin/profile');
+            },
           ),
         ],
       ),

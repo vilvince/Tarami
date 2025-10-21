@@ -16,7 +16,8 @@ import 'features/submissions/pages/submission_page.dart';
 import 'features/word_management/viewmodel/word_vm.dart';
 import 'features/word_management/pages/word_page.dart';
 import 'package:tarami_application/app/login_page.dart';
-
+import 'features/admin_profile/viewmodel/admin_profile_vm.dart';
+import 'features/admin_profile/pages/admin_profile_page.dart';
 
 
 void main() {
@@ -37,6 +38,7 @@ class AdminApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserVM()),
         ChangeNotifierProvider(create: (_) => SubmissionVM()),
         ChangeNotifierProvider(create: (_) => WordVM()),
+        ChangeNotifierProvider(create: (_) => AdminProfileVM()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -64,6 +66,8 @@ class AdminApp extends StatelessWidget {
           '/admin/users': (_) => const UserPage(),
           '/admin/submissions': (_) => const SubmissionPage(),
           '/admin/words': (_) => const WordPage(),
+          '/admin/profile': (_) => const AdminProfilePage(),
+
         },
       ),
     );
