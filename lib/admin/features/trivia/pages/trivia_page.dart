@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../layout/admin_scaffold.dart';
@@ -8,37 +9,62 @@ import '../data/trivia_model.dart';
 class TriviaPage extends StatelessWidget {
   const TriviaPage({super.key});
 
+  static const double desiredCardWidth = 450;
+  static const double desiredCardHeight = 200;
+  static const double cardSpacing = 16;
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<TriviaAdminVM>();
+    final itemCount = vm.items.length;
 
     return AdminScaffold(
       title: 'Trivia',
-      actions: [
-        FilledButton.icon(
-          onPressed: () => _openAddDialog(context),
-          icon: const Icon(Icons.add),
-          label: const Text('Add New Trivia'),
-          style: FilledButton.styleFrom(backgroundColor: brandGold, foregroundColor: Colors.black),
-        ),
-      ],
-      child: LayoutBuilder(
-        builder: (context, c) {
-          final w = c.maxWidth;
-          final crossAxisCount = w >= 1200 ? 3 : 2;
-          return GridView.builder(
-            itemCount: vm.items.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              crossAxisSpacing: 28,
-              mainAxisSpacing: 28,
-              childAspectRatio: 1.9,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: FilledButton.icon(
+              onPressed: () => _openAddDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add New Trivia'),
+              style: FilledButton.styleFrom(
+                backgroundColor: brandGold,
+                foregroundColor: Colors.black,
+              ),
             ),
-            itemBuilder: (_, i) => _TriviaCard(item: vm.items[i]),
-          );
-        },
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = (itemCount / 2).ceil();
+              final count = crossAxisCount > 0 ? crossAxisCount : 1;
+              final childAspectRatio = desiredCardWidth / desiredCardHeight;
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: count * desiredCardWidth +
+                        (count - 1) * cardSpacing,
+                  ),
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(cardSpacing),
+                    itemCount: itemCount,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: count,
+                      crossAxisSpacing: cardSpacing,
+                      mainAxisSpacing: cardSpacing,
+                      childAspectRatio: childAspectRatio,
+                    ),
+                    itemBuilder: (_, i) => _TriviaCard(item: vm.items[i]),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -50,17 +76,49 @@ class TriviaPage extends StatelessWidget {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Add New Trivia'),
-        content: TextField(
-          controller: controller,
-          maxLines: 5,
-          decoration: const InputDecoration(
-            hintText: 'Enter trivia text…',
-            border: OutlineInputBorder(),
+        backgroundColor: cardNavy,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'Add New Trivia',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: 500,
+          height: 200,
+          child: TextField(
+            controller: controller,
+            maxLines: null,
+            expands: true,
+            style: const TextStyle(color: Colors.black),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.grey),
+              ),
+              hintText: 'Enter trivia text…',
+              hintStyle: const TextStyle(color: Colors.grey),
+            ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
           FilledButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
@@ -68,6 +126,10 @@ class TriviaPage extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
+            style: FilledButton.styleFrom(
+              backgroundColor: brandGold,
+              foregroundColor: Colors.black,
+            ),
             child: const Text('Save'),
           ),
         ],
@@ -85,11 +147,14 @@ class _TriviaCard extends StatelessWidget {
     final vm = context.read<TriviaAdminVM>();
 
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cardNavy,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(blurRadius: 10, offset: Offset(0, 8), color: Color(0x14000000))],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+              blurRadius: 10, offset: Offset(0, 8), color: Color(0x14000000))
+        ],
       ),
       child: Stack(
         children: [
@@ -101,7 +166,7 @@ class _TriviaCard extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   height: 1.35,
-                  fontSize: 15.5,
+                  fontSize: 13,
                 ),
               ),
             ),
@@ -112,15 +177,27 @@ class _TriviaCard extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  tooltip: 'Edit',
-                  onPressed: () => _openEditDialog(context, item),
-                  icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                Padding(
+                  padding: const EdgeInsets.only(right: 2),
+                  child: IconButton(
+                    tooltip: 'Edit',
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                    onPressed: () => _openEditDialog(context, item),
+                    icon: const Icon(Icons.edit_outlined,
+                        color: Colors.lightBlue, size: 18),
+                  ),
                 ),
-                IconButton(
-                  tooltip: 'Delete',
-                  onPressed: () => _confirmDelete(context, vm, item.id),
-                  icon: const Icon(Icons.delete_outline, color: Colors.white),
+                Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: IconButton(
+                    tooltip: 'Delete',
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                    onPressed: () => _confirmDelete(context, vm, item.id),
+                    icon: const Icon(Icons.delete_outline,
+                        color: Colors.red, size: 18),
+                  ),
                 ),
               ],
             ),
@@ -137,16 +214,47 @@ class _TriviaCard extends StatelessWidget {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit Trivia'),
-        content: TextField(
-          controller: controller,
-          maxLines: 5,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+        backgroundColor: cardNavy,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'Edit Trivia',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: 500,
+          height: 200,
+          child: TextField(
+            controller: controller,
+            maxLines: null,
+            expands: true,
+            style: const TextStyle(color: Colors.black),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.grey),
+              ),
+            ),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
           FilledButton(
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
@@ -154,6 +262,10 @@ class _TriviaCard extends StatelessWidget {
                 Navigator.pop(context);
               }
             },
+            style: FilledButton.styleFrom(
+              backgroundColor: brandGold,
+              foregroundColor: Colors.black,
+            ),
             child: const Text('Save Changes'),
           ),
         ],
@@ -165,14 +277,38 @@ class _TriviaCard extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete Trivia'),
-        content: const Text('Are you sure you want to delete this trivia?'),
+        backgroundColor: cardNavy,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text(
+          'Delete Trivia',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this trivia?',
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
     if (ok == true) vm.deleteTrivia(id);
   }
 }
+
