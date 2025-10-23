@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../viewmodel/inbox_vm.dart';
 import '../data/inbox_model.dart';
 import '../../../layout/admin_scaffold.dart';
-import '../../../shared/theme.dart'; // brandNavy
+import '../../../shared/theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});
@@ -25,16 +27,18 @@ class _InboxPageState extends State<InboxPage> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              _buildFilters(vm),
-              const SizedBox(height: 20),
-              _buildTable(vm),
-              const SizedBox(height: 20),
-              _buildPagination(vm),
-            ],
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                _buildFilters(vm),
+                const SizedBox(height: 20),
+                _buildTable(vm),
+                const SizedBox(height: 20),
+                _buildPagination(vm),
+              ],
+            ),
           ),
         ),
       ),
@@ -141,16 +145,16 @@ class _InboxPageState extends State<InboxPage> {
             DataColumn(label: Expanded(child: Center(child: Text("Status")))),
             DataColumn(label: Expanded(child: Center(child: Text("Action")))),
           ],
-          rows: vm.paginatedItems.map<DataRow>((InboxItem item) {
+          rows: vm.paginatedItems.map<DataRow>((item) {  // item is now Map
             return DataRow(
               cells: [
-                _flexCell(Text(item.email, style: const TextStyle(fontSize: 13))),
-                _flexCell(Text(item.submittedWord)),
-                _flexCell(Text(item.dialect)),
-                _flexCell(Text(item.translation)),
-                _flexCell(Text(item.date)),
-                _flexCell(Text(item.partOfSpeech)),
-                _flexCell(StatusBadge(status: item.status)),
+                _flexCell(Text(item['submitted_by_email'] ?? '', style: const TextStyle(fontSize: 13))),
+                _flexCell(Text(item['word'] ?? '')),
+                _flexCell(Text(item['dialect'] ?? '')),
+                _flexCell(Text(item['translation'] ?? '')),
+                _flexCell(Text(_formatDate(item['date_submitted']))),
+                _flexCell(Text(item['part_of_speech'] ?? '')),
+                _flexCell(StatusBadge(status: item['status'] ?? 'pending')),
                 _flexCell(
                   IconButton(
                     icon: const Icon(Icons.more_horiz, size: 20),
@@ -165,7 +169,15 @@ class _InboxPageState extends State<InboxPage> {
     );
   }
 
-  void _showActionModal(BuildContext context, InboxItem item) {
+  void _showActionModal(BuildContext context, Map<String, dynamic> item) {
+    // --- Improvement: Split the combined example sentence field ---
+    // Get the combined sentence string from Firestore (e.g., "Sentence in dialect|Sentence in English")
+    final String combinedExample = item['example_sentence'] ?? '|';
+    final List<String> exampleParts = combinedExample.split('|');
+    final String dialectExample = exampleParts.isNotEmpty ? exampleParts[0] : 'N/A';
+    final String englishExample = exampleParts.length > 1 ? exampleParts[1] : 'N/A';
+    // --- End of Improvement ---
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -183,7 +195,7 @@ class _InboxPageState extends State<InboxPage> {
                   children: [
                     Center(
                       child: Text(
-                        "Details for ${item.email}",
+                        "Details for \"${item['word']}\"", // Added quotes for clarity
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
@@ -192,20 +204,22 @@ class _InboxPageState extends State<InboxPage> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-                    buildDetailRow("Dialect", item.dialect),
-                    buildDetailRow("Word", item.submittedWord),
-                    buildDetailRow("Translation", item.translation),
-                    buildDetailRow("Phonetic", item.phonetic ?? ""),
-                    buildDetailRow("Tagalog", item.tagalog ?? ""),
-                    buildDetailRow("Part of Speech", item.partOfSpeech),
-                    buildDetailRow("Definition", item.definition ?? ""),
-                    buildDetailRow("Example", item.example ?? ""),
-                    buildDetailRow("Synonyms", item.synonyms ?? ""),
-                    if ((item.etymology ?? "").isNotEmpty)
-                      buildDetailRow("Etymology", item.etymology ?? ""),
+
+                    // ✅ FIXED ALL THE KEYS BELOW TO MATCH YOUR FIRESTORE DATABASE
+                    buildDetailRow("Dialect", item['dialect'] ?? ''),
+                    buildDetailRow("Word", item['word'] ?? ''),
+                    buildDetailRow("Translation", item['translation'] ?? ''),
+                    buildDetailRow("Phonetic", item['phonetics'] ?? ''), // FIX: was 'phonetic'
+                    buildDetailRow("Tagalog", item['tagalog_translation'] ?? ''), // FIX: was 'tagalog'
+                    buildDetailRow("Part of Speech", item['part_of_speech'] ?? ''), // FIX: was 'partOfSpeech'
+                    buildDetailRow("Definition", item['definition'] ?? ''),
+                    buildDetailRow("Example (Dialect)", dialectExample), // FIX: Display split sentence
+                    buildDetailRow("Example (English)", englishExample), // FIX: Display split sentence
+                    buildDetailRow("Synonyms", item['synonyms'] ?? ''),
+
                     const SizedBox(height: 20),
+                    if ((item['status'] ?? '').toLowerCase() == 'pending')
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -214,10 +228,17 @@ class _InboxPageState extends State<InboxPage> {
                             backgroundColor: Colors.green.shade700,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(context);
-                            setState(() => item.status = "Reviewed");
-                            _showSuccessModal(context, "Approved → Reviewed for ${item.email}");
+                            final result = await context.read<InboxVM>().approveSubmission(item['id']);
+                            if (mounted) { // Check if the widget is still in the tree
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(result['message']),
+                                  backgroundColor: result['success'] ? Colors.green : Colors.red,
+                                ),
+                              );
+                            }
                           },
                           child: const Text("Approve", style: TextStyle(color: Colors.white)),
                         ),
@@ -226,10 +247,14 @@ class _InboxPageState extends State<InboxPage> {
                             backgroundColor: Colors.red.shade700,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(context);
-                            setState(() => item.status = "Reviewed");
-                            _showSuccessModal(context, "Denied → Reviewed for ${item.email}");
+                            await context.read<InboxVM>().denySubmission(item['id']);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Submission Denied')),
+                              );
+                            }
                           },
                           child: const Text("Deny", style: TextStyle(color: Colors.white)),
                         ),
@@ -238,10 +263,14 @@ class _InboxPageState extends State<InboxPage> {
                             backgroundColor: Colors.orange.shade700,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(context);
-                            setState(() => item.status = "Reviewed");
-                            _showSuccessModal(context, "Flagged → Reviewed for ${item.email}");
+                            await context.read<InboxVM>().flagSubmission(item['id']);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Submission Flagged')),
+                              );
+                            }
                           },
                           child: const Text("Flag", style: TextStyle(color: Colors.white)),
                         ),
@@ -374,10 +403,41 @@ class StatusBadge extends StatelessWidget {
   final String status;
   const StatusBadge({super.key, required this.status});
 
+  // Helper method to get the correct colors based on status
+  Map<String, Color> _getColors(String status) {
+    switch (status.toLowerCase()) { // Use toLowerCase() for safety
+      case "pending":
+      // The orange shade you already have
+        return {"bg": Colors.orange.shade50, "text": Colors.orange.shade700};
+      case "approved":
+      // Your new "Approved" colors
+        return {"bg": const Color(0xFFE8F5E9), "text": const Color(0xFF2E7D32)};
+      case "denied":
+      // Your new "Denied" colors
+        return {"bg": const Color(0xFFFFEBEE), "text": const Color(0xFFC62828)};
+      case "flagged":
+      // Your new "Flagged" colors
+        return {"bg": const Color(0xFFFFFDE7), "text": const Color(0xFFF9A825)};
+      default:
+      // Your default fallback colors
+        return {"bg": Colors.grey.shade200, "text": Colors.black54};
+    }
+  }
+
+
+  // Helper to capitalize the first letter for display (e.g., "pending" -> "Pending")
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1);
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    final bgColor = status == "Reviewed" ? Colors.green.shade50 : Colors.orange.shade50;
-    final textColor = status == "Reviewed" ? Colors.green.shade700 : Colors.orange.shade700;
+    final colors = _getColors(status);
+    final bgColor = colors['bg']!;
+    final textColor = colors['text']!;
+    final displayText = _capitalize(status);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -386,9 +446,20 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
       ),
       child: Text(
-        status,
+        displayText,
         style: TextStyle(color: textColor, fontWeight: FontWeight.w600),
       ),
     );
   }
+}
+String _formatDate(dynamic ts) {
+  if (ts == null) return '-';
+
+  // When using Firestore Timestamp
+  if (ts is Timestamp) {
+    return DateFormat('yyyy-MM-dd HH:mm').format(ts.toDate());
+  }
+
+  // When it's already a String (fallback)
+  return ts.toString();
 }

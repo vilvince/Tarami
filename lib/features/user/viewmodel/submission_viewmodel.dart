@@ -38,7 +38,7 @@ class SubmissionViewModel extends ChangeNotifier {
       // Query the word_submissions collection directly (no orderBy to avoid index requirement)
       final querySnapshot = await _firestore
           .collection('word_submissions')
-          .where('submitted_by', isEqualTo: user.uid)
+          .where('submitted_by_email', isEqualTo: user.email)
           .get();
 
       print('Found ${querySnapshot.docs.length} submissions');
@@ -94,7 +94,7 @@ class SubmissionViewModel extends ChangeNotifier {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'Pending';
-      case 'accepted':
+      case 'approved':
         return 'Approved';
       case 'denied':
         return 'Denied';

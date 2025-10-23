@@ -7,7 +7,7 @@ class TriviaService{
   Stream<List<TriviaModel>> getTrivia(){
     return _firestore
         .collection('trivia')
-        .orderBy('date_added', descending: true)
+        .orderBy('created_at', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
         .map((doc) => TriviaModel.fromFirestore(doc.data(), doc.id))

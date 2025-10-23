@@ -1,10 +1,30 @@
+// lib/features/home/pages/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/home_vm.dart';
 import '../../../layout/admin_scaffold.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool _loadedOnce = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_loadedOnce) {
+      final vm = context.read<HomeVM>();
+      vm.loadDashboardData();
+      _loadedOnce = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,17 +34,27 @@ class HomePage extends StatelessWidget {
       title: "Dashboard",
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: vm.isLoading
+            ? const SizedBox(
+            height: 300,
+            child: Center(child: CircularProgressIndicator()))
+            : vm.errorMessage != null
+            ? Center(child: Text(vm.errorMessage!))
+            : Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 🔹 Top stat cards
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _statCard("Approved Submission", vm.stats.approved, const Color(0xFF52B587), Icons.thumb_up_alt_outlined),
-                _statCard("Denied Submission", vm.stats.denied, const Color(0xFF8E3131), Icons.block),
-                _statCard("Read Submission", vm.stats.read, const Color(0xFF4384B3), Icons.mail_outline),
-                _statCard("Flagged Submission", vm.stats.flagged, const Color(0xFFF3A463), Icons.outlined_flag),
+                _statCard("Approved Submission", vm.stats.approved,
+                    const Color(0xFF52B587), Icons.thumb_up_alt_outlined),
+                _statCard("Denied Submission", vm.stats.denied,
+                    const Color(0xFF8E3131), Icons.block),
+                _statCard("Read Submission", vm.stats.read,
+                    const Color(0xFF4384B3), Icons.mail_outline),
+                _statCard("Flagged Submission", vm.stats.flagged,
+                    const Color(0xFFF3A463), Icons.outlined_flag),
               ],
             ),
             const SizedBox(height: 24),
@@ -39,12 +69,7 @@ class HomePage extends StatelessWidget {
                     height: 280,
                     padding: const EdgeInsets.all(16),
                     decoration: _boxDecoration(),
-                    child: const Center(
-                      child: Text(
-                        "📈 Contributions Over Time (Line Chart Placeholder)",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
+                    child: _buildLineChart(vm),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -53,12 +78,7 @@ class HomePage extends StatelessWidget {
                     height: 280,
                     padding: const EdgeInsets.all(16),
                     decoration: _boxDecoration(),
-                    child: const Center(
-                      child: Text(
-                        "🥧 Submission Breakdown (Pie Chart Placeholder)",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
+                    child: _buildPieChart(vm),
                   ),
                 ),
               ],
@@ -78,10 +98,13 @@ class HomePage extends StatelessWidget {
                       children: [
                         const Text(
                           "Most Commonly Used / Searched Words",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         const SizedBox(height: 16),
                         ...vm.commonWords.map((word) {
+                          // guard for progress bar scaling
+                          final double pct = (word.count / (vm.commonWords.isNotEmpty ? vm.commonWords.first.count : 1)).clamp(0.05, 1.0);
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Row(
@@ -89,9 +112,9 @@ class HomePage extends StatelessWidget {
                                 SizedBox(width: 80, child: Text(word.word)),
                                 Expanded(
                                   child: LinearProgressIndicator(
-                                    value: word.count / 100, // 🔧 scaling placeholder
+                                    value: pct,
                                     backgroundColor: Colors.grey.shade200,
-                                    color: Colors.teal,
+                                    // color left default
                                     minHeight: 8,
                                   ),
                                 ),
@@ -148,6 +171,115 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ✅ ADD THIS HELPER METHOD FOR THE LINE CHART
+  Widget _buildLineChart(HomeVM vm) {
+    // Prepare data points for the last 7 days
+    final spots = <FlSpot>[];
+    for (int i = 6; i >= 0; i--) {
+      final date = DateTime.now().subtract(Duration(days: i));
+      final day = DateTime(date.year, date.month, date.day);
+      final count = vm.weeklyContributions[day] ?? 0;
+      spots.add(FlSpot(6 - i.toDouble(), count.toDouble()));
+    }
+
+    return LineChart(
+      LineChartData(
+        gridData: const FlGridData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final dayIndex = 6 - value.toInt();
+                final date = DateTime.now().subtract(Duration(days: dayIndex));
+                return Text(DateFormat('d MMM').format(date), style: const TextStyle(fontSize: 10));
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: Colors.blueAccent,
+            barWidth: 3,
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [Colors.blueAccent.withOpacity(0.3), Colors.blueAccent.withOpacity(0.0)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ ADD THIS HELPER METHOD FOR THE PIE CHART
+  Widget _buildPieChart(HomeVM vm) {
+    return Column(
+      children: [
+        const Text("Submission Breakdown", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Expanded(
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 2,
+              centerSpaceRadius: 40,
+              sections: [
+                PieChartSectionData(
+                  value: vm.stats.approved.toDouble(),
+                  title: '${vm.stats.approved}',
+                  color: const Color(0xFF52B587),
+                  radius: 50,
+                ),
+                PieChartSectionData(
+                  value: vm.stats.denied.toDouble(),
+                  title: '${vm.stats.denied}',
+                  color: const Color(0xFF8E3131),
+                  radius: 50,
+                ),
+                PieChartSectionData(
+                  value: vm.stats.flagged.toDouble(),
+                  title: '${vm.stats.flagged}',
+                  color: const Color(0xFFF3A463),
+                  radius: 50,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildLegendItem("Approved", const Color(0xFF52B587)),
+            _buildLegendItem("Denied", const Color(0xFF8E3131)),
+            _buildLegendItem("Flagged", const Color(0xFFF3A463)),
+          ],
+        )
+      ],
+    );
+  }
+
+  // ✅ ADD THIS HELPER FOR THE PIE CHART LEGEND
+  Widget _buildLegendItem(String name, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 10, height: 10, color: color),
+          const SizedBox(width: 4),
+          Text(name, style: const TextStyle(fontSize: 12)),
+        ],
       ),
     );
   }

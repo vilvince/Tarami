@@ -40,7 +40,7 @@ class AdminScaffold extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                     child: child,
                   ),

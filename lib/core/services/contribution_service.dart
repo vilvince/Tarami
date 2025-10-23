@@ -27,7 +27,7 @@ class ContributionService {
       // Prepare submission data
       final submissionData = {
         'submitted_id': docRef.id,
-        'submitted_by': user.uid,
+        'submitted_by_email': user.email ?? 'anonymous',
         'date_submitted': FieldValue.serverTimestamp(),
         'word': contribution.word,
         'dialect': contribution.dialect,
@@ -80,7 +80,7 @@ class ContributionService {
       // Get all user submissions (single where clause, no index needed)
       final allSubmissions = await _firestore
           .collection(_collectionName)
-          .where('submitted_by', isEqualTo: user.uid)
+          .where('submitted_by_email', isEqualTo: user.email)
           .get();
 
       if (allSubmissions.docs.isEmpty) {
@@ -132,7 +132,7 @@ class ContributionService {
 
       Query query = _firestore
           .collection(_collectionName)
-          .where('submitted_by', isEqualTo: user.uid)
+          .where('submitted_by_email', isEqualTo: user.email)
           .orderBy('date_submitted', descending: true);
 
       if (status != null) {
@@ -158,7 +158,7 @@ class ContributionService {
 
     Query query = _firestore
         .collection(_collectionName)
-        .where('submitted_by', isEqualTo: user.uid)
+        .where('submitted_by_email', isEqualTo: user.email)
         .orderBy('date_submitted', descending: true);
 
     if (status != null) {

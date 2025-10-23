@@ -1,28 +1,47 @@
-import 'package:flutter/material.dart';
+// lib/features/home/viewmodel/home_vm.dart
+import 'package:flutter/foundation.dart';
+import '../../../AdminServices/home_services.dart'; // Import the new service
 import '../data/home_model.dart';
 
 class HomeVM extends ChangeNotifier {
-  HomeStats stats = HomeStats(
-    approved: 2,
-    denied: 2,
-    read: 2,
-    flagged: 2,
-  );
+  final AdminDashboardService _service = AdminDashboardService(); // Use the new service
 
-  List<CommonWord> commonWords = [
-    CommonWord(word: "Thanks", count: 51),
-    CommonWord(word: "Beautiful", count: 30),
-    CommonWord(word: "Love", count: 100),
-    CommonWord(word: "Night", count: 15),
-    CommonWord(word: "Face", count: 39),
-    CommonWord(word: "Rain", count: 69),
-  ];
+  // ... (state variables are the same)
+  bool isLoading = true;
+  String? errorMessage;
+  HomeStats stats = HomeStats(approved: 0, denied: 0, read: 0, flagged: 0);
+  List<CommonWord> commonWords = [];
+  List<TopContributor> contributors = [];
+  Map<DateTime, int> weeklyContributions = {};
 
-  List<TopContributor> contributors = [
-    TopContributor(name: "Jane Doe", words: 65),
-    TopContributor(name: "John Smith", words: 60),
-    TopContributor(name: "Mary Jane", words: 55),
-    TopContributor(name: "Carlos Cruz", words: 50),
-    TopContributor(name: "Anna Lee", words: 45),
-  ];
+  // ... (other methods are the same)
+
+  HomeVM() {
+    loadDashboardData();
+  }
+
+  Future<void> loadDashboardData() async {
+    try {
+      // Now the VM calls the service instead of doing the query itself
+      final results = await Future.wait([
+        _service.getDashboardStats(),
+        _service.getCommonWords(),
+        _service.getTopContributors(),
+        _service.getContributionsOverLastWeek()
+      ]);
+
+      // Assign results to state
+      stats = results[0] as HomeStats;
+      commonWords = results[1] as List<CommonWord>;
+      contributors = results[2] as List<TopContributor>;
+      weeklyContributions = results[3] as Map<DateTime, int>;
+
+      errorMessage = null;
+    } catch (e) {
+      errorMessage = 'Failed to load dashboard data.';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
 }

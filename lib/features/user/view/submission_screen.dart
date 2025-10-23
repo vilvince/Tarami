@@ -368,7 +368,7 @@ class _SubmissionScreenState extends State<SubmissionScreen> with SingleTickerPr
       case 'denied':
         return Colors.red;
       case 'flagged':
-        return Colors.purple;
+        return Colors.yellow;
       default:
         return Colors.grey;
     }

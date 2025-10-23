@@ -56,7 +56,7 @@ class TriviaScreenPage extends StatelessWidget {
                           return SingleChildScrollView(
                               child: Column(
                                 children: vm.triviaList
-                                    .map((trivia) => _buildTriviaCard(trivia.sentence))
+                                    .map((trivia) => _buildTriviaCard(trivia.text))
                                     .toList(),
                               ),
                           );

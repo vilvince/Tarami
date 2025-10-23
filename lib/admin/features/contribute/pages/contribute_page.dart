@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tarami_application/admin/layout/admin_scaffold.dart';
-import 'package:tarami_application/features/contribute/viewmodel/contribute_viewmodel.dart';
+import 'package:tarami_application/admin/features/contribute/viewmodel/contribute_vm.dart';
 
 class ContributePage extends StatelessWidget {
   const ContributePage({super.key});
@@ -14,145 +14,146 @@ class ContributePage extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
           // 🔹 Limit form width
-          child: ChangeNotifierProvider(
-            create: (_) => ContributeViewModel(),
-            child: Consumer<ContributeViewModel>(
-              builder: (context, vm, _) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Let’s keep our language alive — send us a word!",
-                      textAlign: TextAlign.center,
-                      style: Theme
-                          .of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
+          
+          child: SingleChildScrollView(
+            child: ChangeNotifierProvider(
+              create: (_) => AdminContributeViewModel(),
+              child: Consumer<AdminContributeViewModel>(
+                builder: (context, vm, _) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Let’s keep our language alive — send us a word!",
+                        textAlign: TextAlign.center,
+                        style: Theme
+                            .of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Dialect dropdown
-                    _buildDialectDropdown(vm),
-                    _buildValidationText(
-                        vm.selectedDialect == null,
-                        "*Select a dialect from the list",
-                        vm),
-                    const SizedBox(height: 16),
-
-                    // Word
-                    _buildTextField(
-                        vm.wordController,
-                        "Please enter the word you want to contribute",
-                        "*Enter the word you want to contribute",
-                        vm),
-                    const SizedBox(height: 16),
-
-                    // Translation
-                    _buildTextField(
-                        vm.translationController,
-                        "Provide the translation in the selected dialect",
-                        "*Provide the translation",
-                        vm),
-                    const SizedBox(height: 16),
-
-                    // Phonetic
-                    _buildTextField(vm.phoneticController,
-                        "Phonetic (e.g., /va·ken·si/)",
-                        "*Required", vm),
-                    const SizedBox(height: 16),
-
-                    // Tagalog translation
-                    _buildTextField(
-                        vm.tagalogTranslationController,
-                        "Provide the Tagalog translation",
-                        "*Provide the Tagalog translation",
-                        vm),
-                    const SizedBox(height: 16),
-
-                    // Part of Speech
-                    _buildPartOfSpeechDropdown(vm),
-                    _buildValidationText(vm.selectedPartOfSpeech == null,
-                        "*Choose the part of speech", vm),
-                    const SizedBox(height: 16),
-
-                    // Definition
-                    _buildTextField(
-                        vm.definitionController,
-                        "Describe the meaning of the word clearly",
-                        "*Give a clear definition",
-                        vm,
-                        maxLines: 2),
-                    const SizedBox(height: 16),
-
-                    // Example
-                    _buildTextField(
-                        vm.exampleController,
-                        "Use the word in a sentence to show how it’s used",
-                        "*Provide at least one example sentence",
-                        vm,
-                        maxLines: 2),
-                    const SizedBox(height: 16),
-
-                    // Synonyms
-                    _buildTextField(
-                        vm.synonymsController,
-                        "Synonyms (separate with commas)",
-                        "*Optional",
-                        vm,
-                        maxLines: 2),
-                    const SizedBox(height: 32),
-
-                    // Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFDC500),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 16),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                      const SizedBox(height: 32),
+            
+                      // Dialect dropdown
+                      _buildDialectDropdown(vm),
+                      _buildValidationText(
+                          vm.selectedDialect == null,
+                          "*Select a dialect from the list",
+                          vm),
+                      const SizedBox(height: 16),
+            
+                      // Word
+                      _buildTextField(
+                          vm.wordController,
+                          "Please enter the word you want to contribute",
+                          "*Enter the word you want to contribute",
+                          vm),
+                      const SizedBox(height: 16),
+            
+                      // Translation
+                      _buildTextField(
+                          vm.translationController,
+                          "Provide the translation in the selected dialect",
+                          "*Provide the translation",
+                          vm),
+                      const SizedBox(height: 16),
+            
+                      // Phonetic
+                      _buildTextField(vm.phoneticController,
+                          "Phonetic (e.g., /va·ken·si/)",
+                          "*Required", vm),
+                      const SizedBox(height: 16),
+            
+                      // Tagalog translation
+                      _buildTextField(
+                          vm.tagalogTranslationController,
+                          "Provide the Tagalog translation",
+                          "*Provide the Tagalog translation",
+                          vm),
+                      const SizedBox(height: 16),
+            
+                      // Part of Speech
+                      _buildPartOfSpeechDropdown(vm),
+                      _buildValidationText(vm.selectedPartOfSpeech == null,
+                          "*Choose the part of speech", vm),
+                      const SizedBox(height: 16),
+            
+                      // Definition
+                      _buildTextField(
+                          vm.definitionController,
+                          "Describe the meaning of the word clearly",
+                          "*Give a clear definition",
+                          vm,
+                          maxLines: 2),
+                      const SizedBox(height: 16),
+            
+                      // Example in dialect
+                      _buildTextField(
+                          vm.exampleSentenceInDialectController,
+                          "Use the word in a sentence to show how it’s used",
+                          "*Provide at least one example sentence",
+                          vm,
+                          maxLines: 2),
+                      const SizedBox(height: 16),
+            
+                      // Example in English
+                      _buildTextField(
+                          vm.exampleSentenceInEnglishController,
+                          "Use the word in a sentence to show how it’s used",
+                          "*Provide at least one example sentence",
+                          vm,
+                          maxLines: 2),
+                      const SizedBox(height: 16),
+            
+            
+                      // Synonyms
+                      _buildTextField(
+                          vm.synonymsController,
+                          "Synonyms (separate with commas)",
+                          "*Optional",
+                          vm,
+                          maxLines: 2),
+                      const SizedBox(height: 32),
+            
+                      // Buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFDC500),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: () {
+                              if (!vm.validateForm()) return;
+                              showSummaryModal(context, vm);
+                            },
+                            child: const Text("Submit",
+                                style: TextStyle(color: Colors.black)),
                           ),
-                          onPressed: () {
-                            if (!vm.validateForm()) return;
-                            if (!vm.canSubmit()) {
-                              showDialog(
-                                context: context,
-                                builder: (_) =>
-                                const AlertDialog(
-                                  title: Text("Limit Reached"),
-                                  content: Text(
-                                      "You can only submit 5 words per day."),
-                                ),
-                              );
-                              return;
-                            }
-                            showSummaryModal(context, vm);
-                          },
-                          child: const Text("Submit",
-                              style: TextStyle(color: Colors.black)),
-                        ),
-                        const SizedBox(width: 16),
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 32, vertical: 16),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                          const SizedBox(width: 16),
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 32, vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: vm.clearForm,
+                            child: const Text("Cancel"),
                           ),
-                          onPressed: vm.clearForm,
-                          child: const Text("Cancel"),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -162,7 +163,7 @@ class ContributePage extends StatelessWidget {
 
   // ------- Helpers --------
 
-  Widget _buildDialectDropdown(ContributeViewModel vm) {
+  Widget _buildDialectDropdown(AdminContributeViewModel vm) {
     return DropdownButtonFormField<String>(
       value: vm.selectedDialect,
       decoration: _inputDecoration("Please select a dialect"),
@@ -173,7 +174,7 @@ class ContributePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPartOfSpeechDropdown(ContributeViewModel vm) {
+  Widget _buildPartOfSpeechDropdown(AdminContributeViewModel vm) {
     return DropdownButtonFormField<String>(
       value: vm.selectedPartOfSpeech,
       decoration: _inputDecoration(
@@ -186,7 +187,7 @@ class ContributePage extends StatelessWidget {
   }
 
   Widget _buildTextField(TextEditingController controller, String label,
-      String errorText, ContributeViewModel vm,
+      String errorText, AdminContributeViewModel vm,
       {int maxLines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,7 +208,7 @@ class ContributePage extends StatelessWidget {
   }
 
   Widget _buildValidationText(bool condition, String message,
-      ContributeViewModel vm) {
+      AdminContributeViewModel vm) {
     return condition && vm.showValidationErrors
         ? Padding(
       padding: const EdgeInsets.only(top: 6, left: 5),
@@ -227,7 +228,7 @@ class ContributePage extends StatelessWidget {
   }
 
   // ------- Modals --------
-  void showSummaryModal(BuildContext context, ContributeViewModel vm) {
+  void showSummaryModal(BuildContext context, AdminContributeViewModel vm) {
     showDialog(
       context: context,
       builder: (context) {
@@ -259,9 +260,9 @@ class ContributePage extends StatelessWidget {
                 buildSummaryRow(
                     "Part of Speech:", vm.selectedPartOfSpeech ?? ""),
                 buildSummaryRow("Definition:", vm.definitionController.text),
-                if (vm.etymologyController.text.isNotEmpty)
-                  buildSummaryRow("Etymology:", vm.etymologyController.text),
-                buildSummaryRow("Example:", vm.exampleController.text),
+                buildSummaryRow("Example in Dialect:", vm.exampleSentenceInDialectController.text),
+                buildSummaryRow("Example (English):",
+                    vm.exampleSentenceInEnglishController.text),
                 buildSummaryRow("Synonyms:", vm.synonymsController.text),
                 const SizedBox(height: 20),
                 Row(
@@ -269,7 +270,7 @@ class ContributePage extends StatelessWidget {
                   children: [
                     ElevatedButton(
                       onPressed: () {
-                        vm.submitForm();
+                        vm.submitContribution();
                         Navigator.of(context).pop();
                         showSuccessModal(context);
                       },
