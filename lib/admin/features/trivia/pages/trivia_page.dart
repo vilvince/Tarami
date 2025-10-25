@@ -24,30 +24,32 @@ class TriviaPage extends StatelessWidget {
           : vm.errorMessage != null
           ? _buildErrorWidget(context, vm)
       // This is the main layout widget. It correctly handles scrolling.
-          : CustomScrollView(
-        slivers: [
-          // Sliver #1: A non-scrolling "box" for your "Add" button.
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  onPressed: () => _openAddDialog(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add New Trivia'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: brandGold,
-                    foregroundColor: Colors.black,
+          : Scrollbar(
+            child: CustomScrollView(
+                    slivers: [
+            // Sliver #1: A non-scrolling "box" for your "Add" button.
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: () => _openAddDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add New Trivia'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: brandGold,
+                      foregroundColor: Colors.black,
+                    ),
                   ),
                 ),
               ),
             ),
+            // Sliver #2: The main, scrollable grid for your trivia items.
+            _buildSliverGrid(vm),
+                    ],
+                  ),
           ),
-          // Sliver #2: The main, scrollable grid for your trivia items.
-          _buildSliverGrid(vm),
-        ],
-      ),
     );
   }
 

@@ -19,6 +19,11 @@ class _InboxPageState extends State<InboxPage> {
   String selectedFilterRange = "Week"; // Default filter range
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final vm = context.watch<InboxVM>();
 
@@ -27,17 +32,26 @@ class _InboxPageState extends State<InboxPage> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 10),
-                _buildFilters(vm),
-                const SizedBox(height: 20),
-                _buildTable(vm),
-                const SizedBox(height: 20),
-                _buildPagination(vm),
-              ],
+          child: Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      _buildFilters(vm),
+                      const SizedBox(height: 20),
+                      _buildTable(vm),
+                      const SizedBox(height: 20),
+                      _buildPagination(vm),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),

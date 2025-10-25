@@ -1,36 +1,104 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/user_model.dart';
+import '../../../AdminServices/admin_user_management_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; //
+import 'dart:math';
 
 class UserVM extends ChangeNotifier {
-  final List<UserModel> users = [
-    UserModel(
-      name: "Juan Dela Cruz",
-      email: "juan@email.com",
-      contactNumber: "09171234567",
-      submittedWords: 5,
-      role: "User",
-    ),
-    UserModel(
-      name: "Admin User",
-      email: "admin@email.com",
-      contactNumber: "09101065534",
-      submittedWords: 12,
-      role: "Admin",
-    ),
-  ];
+  final UserService _userService = UserService();
 
-  void addUser(UserModel user) {
-    users.add(user);
+  List<UserModel> _allUsers = []; // Stores the complete list of users
+  bool _isLoading = true;
+  String? _error;
+
+  // Pagination State
+  int _rowsPerPage = 10;
+  int _currentPage = 1;
+
+  // Getters
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  int get rowsPerPage => _rowsPerPage;
+  int get currentPage => _currentPage;
+
+  // Getter for the total number of pages
+  int get totalPages {
+    if (_allUsers.isEmpty) return 1;
+    return (_allUsers.length / _rowsPerPage).ceil();
+  }
+
+  // Getter for the users on the CURRENT page
+  List<UserModel> get paginatedUsers {
+    final startIndex = (_currentPage - 1) * _rowsPerPage;
+    if (startIndex >= _allUsers.length) return [];
+
+    final endIndex = min(startIndex + _rowsPerPage, _allUsers.length);
+    return _allUsers.sublist(startIndex, endIndex);
+  }
+
+  UserVM() {
+    _loadAllUsers();
+  }
+
+  Future<void> _loadAllUsers() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _allUsers = await _userService.fetchAllUsersWithSubmissionCount();
+      // Sort alphabetically once, right after fetching.
+      _allUsers.sort((a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()));
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // --- Pagination Actions ---
+  void setRowsPerPage(int value) {
+    _rowsPerPage = value;
+    _currentPage = 1; // Reset to the first page
     notifyListeners();
   }
 
-  void updateUserRole(UserModel user, String newRole) {
-    user.role = newRole;
+  void goToPage(int pageNumber) {
+    _currentPage = pageNumber.clamp(1, totalPages);
     notifyListeners();
   }
 
-  void deleteUser(UserModel user) {
-    users.remove(user);
+  void nextPage() {
+    if (_currentPage < totalPages) {
+      _currentPage++;
+      notifyListeners();
+    }
+  }
+
+  void prevPage() {
+    if (_currentPage > 1) {
+      _currentPage--;
+      notifyListeners();
+    }
+  }
+
+  // --- Other Actions ---
+  Future<bool> deleteUser(UserModel user) async {
+    try {
+      await _userService.deleteUser(user.id!);
+      // Refresh the whole list to ensure data consistency
+      await _loadAllUsers();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 }

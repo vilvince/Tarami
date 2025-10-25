@@ -51,6 +51,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   shared_preferences: ^2.2.2
   fl_chart: ^0.68.0
+  rxdart: ^0.27.7
 
 
 flutter_native_splash:
