@@ -1,184 +1,94 @@
-import 'dart:math' as math;
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:tarami_application/admin/AdminServices/admin_inbox_service.dart'; // Update path
+import '../../../AdminServices/admin_inbox_service.dart'; // Adjust path if needed
 
 class InboxVM extends ChangeNotifier {
   final AdminSubmissionService _submissionService = AdminSubmissionService();
+  StreamSubscription<List<Map<String, dynamic>>>? _subscription;
 
   // State
-  String _selectedFilter = "All";
+  List<Map<String, dynamic>> _allSubmissions = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  String _selectedFilter = "Pending"; // Default to "Pending"
   int _currentPage = 1;
   int _rowsPerPage = 10;
 
-  // Data - populated from Firestore streams
-  List<Map<String, dynamic>> _allSubmissions = [];
-  bool _isLoading = false;
-  String? _errorMessage;
-
-  // Getters
+  // Getters for the UI
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
   String get selectedFilter => _selectedFilter;
   int get currentPage => _currentPage;
   int get rowsPerPage => _rowsPerPage;
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
 
-  // Constructor - start listening to submissions
-  InboxVM() {
-    _loadSubmissions();
-  }
-
-  // Load submissions based on filter
-  void _loadSubmissions() {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      switch (_selectedFilter) {
-        case "Pending":
-          _submissionService.getPendingSubmissions().listen((submissions) {
-            _allSubmissions = submissions;
-            _isLoading = false;
-            _errorMessage = null;
-            notifyListeners();
-          });
-          break;
-
-        case "Reviewed":
-          _submissionService.getReviewedSubmissions().listen((submissions) {
-            _allSubmissions = submissions;
-            _isLoading = false;
-            _errorMessage = null;
-            notifyListeners();
-          });
-          break;
-
-        default: // "All"
-          _submissionService.getAllSubmissions().listen((submissions) {
-            _allSubmissions = submissions;
-            _isLoading = false;
-            _errorMessage = null;
-            notifyListeners();
-          });
-      }
-    } catch (e) {
-      _isLoading = false;
-      _errorMessage = 'Failed to load submissions: $e';
-      notifyListeners();
+  /// Returns the correctly filtered list of submissions based on the selected tab.
+  List<Map<String, dynamic>> get filteredItems {
+    switch (_selectedFilter) {
+      case "Pending":
+        return _allSubmissions.where((item) => item['status'] == 'pending').toList();
+      case "Reviewed":
+        return _allSubmissions.where((item) => ['approved', 'denied', 'flagged'].contains(item['status'])).toList();
+      case "All":
+      default:
+        return _allSubmissions;
     }
   }
 
-  // Filtered items based on current selection
-  List<Map<String, dynamic>> get filteredItems => _allSubmissions;
-
-  // Total pages
-  int get totalPages {
-    final length = filteredItems.length;
-    if (length == 0) return 1;
-    return ((length + _rowsPerPage - 1) ~/ _rowsPerPage);
-  }
-
-  // Paginated items for current page
+  /// Returns the portion of the filtered list for the current page.
   List<Map<String, dynamic>> get paginatedItems {
     final items = filteredItems;
     if (items.isEmpty) return [];
 
-    // Ensure current page within bounds
-    final pages = totalPages;
-    if (_currentPage < 1) _currentPage = 1;
-    if (_currentPage > pages) _currentPage = pages;
+    final startIndex = (_currentPage - 1) * _rowsPerPage;
+    if (startIndex >= items.length) return [];
 
-    final start = (_currentPage - 1) * _rowsPerPage;
-    final end = math.min(start + _rowsPerPage, items.length);
-    if (start >= items.length) return [];
-    return items.sublist(start, end);
+    final endIndex = min(startIndex + _rowsPerPage, items.length);
+    return items.sublist(startIndex, endIndex);
   }
 
-  // ==========================================
-  // ACTIONS
-  // ==========================================
+  /// Calculates the total number of pages based on the filtered list.
+  int get totalPages => (filteredItems.isEmpty) ? 1 : (filteredItems.length / _rowsPerPage).ceil();
 
-  /// Change filter (All, Pending, Reviewed)
+  InboxVM() {
+    _listenToSubmissions();
+  }
+
+  void _listenToSubmissions() {
+    _subscription?.cancel(); // Cancel any existing subscription first
+    _isLoading = true;
+    notifyListeners();
+
+    // We only need one stream that gets ALL submissions. Filtering is done on the client.
+    _subscription = _submissionService.getAllSubmissions().listen(
+          (submissions) {
+        _allSubmissions = submissions;
+        _isLoading = false;
+        _errorMessage = null;
+        notifyListeners();
+      },
+      onError: (error) {
+        _isLoading = false;
+        _errorMessage = "Failed to load inbox: $error";
+        notifyListeners();
+      },
+    );
+  }
+
+  // --- UI Actions ---
+
   void setFilter(String filter) {
     _selectedFilter = filter;
+    _currentPage = 1; // Reset to the first page when filter changes
+    notifyListeners();
+  }
+
+  void setRowsPerPage(int value) {
+    _rowsPerPage = value;
     _currentPage = 1;
-    _loadSubmissions(); // Reload data with new filter
-  }
-
-  /// Approve submission
-  Future<Map<String, dynamic>> approveSubmission(String submissionId) async {
-    _isLoading = true;
     notifyListeners();
-
-    try {
-      final result = await _submissionService.approveSubmission(submissionId);
-      _isLoading = false;
-      notifyListeners();
-      return result;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      return {
-        'success': false,
-        'message': 'Error: $e',
-      };
-    }
   }
-
-  /// Deny submission
-  Future<Map<String, dynamic>> denySubmission(
-      String submissionId, {
-        String? reason,
-      }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final result = await _submissionService.denySubmission(
-        submissionId,
-        reason: reason,
-      );
-      _isLoading = false;
-      notifyListeners();
-      return result;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      return {
-        'success': false,
-        'message': 'Error: $e',
-      };
-    }
-  }
-
-  /// Flag submission
-  Future<Map<String, dynamic>> flagSubmission(
-      String submissionId, {
-        String? reason,
-      }) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      final result = await _submissionService.flagSubmission(
-        submissionId,
-        reason: reason,
-      );
-      _isLoading = false;
-      notifyListeners();
-      return result;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      return {
-        'success': false,
-        'message': 'Error: $e',
-      };
-    }
-  }
-
-  // ==========================================
-  // PAGINATION
-  // ==========================================
 
   void nextPage() {
     if (_currentPage < totalPages) {
@@ -195,18 +105,24 @@ class InboxVM extends ChangeNotifier {
   }
 
   void goToPage(int page) {
-    final p = page.clamp(1, totalPages);
-    if (p != _currentPage) {
-      _currentPage = p;
-      notifyListeners();
-    }
-  }
-
-  void updateRowsPerPage(int value) {
-    _rowsPerPage = value;
-    _currentPage = 1;
+    _currentPage = page.clamp(1, totalPages);
     notifyListeners();
   }
 
-  int get totalItemsCount => filteredItems.length;
+  // --- Database Actions (Pass-through to Service) ---
+
+  Future<Map<String, dynamic>> approveSubmission(String submissionId) =>
+      _submissionService.approveSubmission(submissionId);
+
+  Future<Map<String, dynamic>> denySubmission(String submissionId) =>
+      _submissionService.denySubmission(submissionId);
+
+  Future<Map<String, dynamic>> flagSubmission(String submissionId) =>
+      _submissionService.flagSubmission(submissionId);
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
 }

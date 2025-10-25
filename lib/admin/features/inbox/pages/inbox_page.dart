@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../viewmodel/inbox_vm.dart';
 import '../data/inbox_model.dart';
 import '../../../layout/admin_scaffold.dart';
-import '../../../shared/theme.dart';
+import '../../../shared/theme.dart'; // brandNavy
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
@@ -29,28 +29,23 @@ class _InboxPageState extends State<InboxPage> {
 
     return AdminScaffold(
       title: "Inbox",
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Scrollbar(
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 10),
-                      _buildFilters(vm),
-                      const SizedBox(height: 20),
-                      _buildTable(vm),
-                      const SizedBox(height: 20),
-                      _buildPagination(vm),
-                    ],
-                  ),
-                ),
+      child: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  _buildFilters(vm),
+                  const SizedBox(height: 20),
+                  _buildTable(vm),
+                  const SizedBox(height: 20),
+                  _buildPagination(vm),
+                ],
               ),
             ),
           ),
@@ -159,7 +154,7 @@ class _InboxPageState extends State<InboxPage> {
             DataColumn(label: Expanded(child: Center(child: Text("Status")))),
             DataColumn(label: Expanded(child: Center(child: Text("Action")))),
           ],
-          rows: vm.paginatedItems.map<DataRow>((item) {  // item is now Map
+          rows: vm.paginatedItems.map<DataRow>((item) {
             return DataRow(
               cells: [
                 _flexCell(Text(item['submitted_by_email'] ?? '', style: const TextStyle(fontSize: 13))),
@@ -190,7 +185,6 @@ class _InboxPageState extends State<InboxPage> {
     final List<String> exampleParts = combinedExample.split('|');
     final String dialectExample = exampleParts.isNotEmpty ? exampleParts[0] : 'N/A';
     final String englishExample = exampleParts.length > 1 ? exampleParts[1] : 'N/A';
-    // --- End of Improvement ---
 
     showDialog(
       context: context,
@@ -209,7 +203,7 @@ class _InboxPageState extends State<InboxPage> {
                   children: [
                     Center(
                       child: Text(
-                        "Details for \"${item['word']}\"", // Added quotes for clarity
+                        "Details for \"${item['word']}\"",
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
@@ -218,9 +212,8 @@ class _InboxPageState extends State<InboxPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
 
-                    // ✅ FIXED ALL THE KEYS BELOW TO MATCH YOUR FIRESTORE DATABASE
+                    const SizedBox(height: 16),
                     buildDetailRow("Dialect", item['dialect'] ?? ''),
                     buildDetailRow("Word", item['word'] ?? ''),
                     buildDetailRow("Translation", item['translation'] ?? ''),
@@ -231,65 +224,64 @@ class _InboxPageState extends State<InboxPage> {
                     buildDetailRow("Example (Dialect)", dialectExample), // FIX: Display split sentence
                     buildDetailRow("Example (English)", englishExample), // FIX: Display split sentence
                     buildDetailRow("Synonyms", item['synonyms'] ?? ''),
-
                     const SizedBox(height: 20),
                     if ((item['status'] ?? '').toLowerCase() == 'pending')
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade700,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade700,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () async {
+                              final result = await context.read<InboxVM>().approveSubmission(item['id']);
+                              Navigator.pop(context);
+                              if (mounted) { // Check if the widget is still in the tree
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result['message']),
+                                    backgroundColor: result['success'] ? Colors.green : Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                            child: const Text("Approve", style: TextStyle(color: Colors.white)),
                           ),
-                          onPressed: () async {
-                            Navigator.pop(context);
-                            final result = await context.read<InboxVM>().approveSubmission(item['id']);
-                            if (mounted) { // Check if the widget is still in the tree
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(result['message']),
-                                  backgroundColor: result['success'] ? Colors.green : Colors.red,
-                                ),
-                              );
-                            }
-                          },
-                          child: const Text("Approve", style: TextStyle(color: Colors.white)),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade700,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () async {
+                              await context.read<InboxVM>().denySubmission(item['id']);
+                              Navigator.pop(context);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Submission Denied')),
+                                );
+                              }
+                            },
+                            child: const Text("Deny", style: TextStyle(color: Colors.white)),
                           ),
-                          onPressed: () async {
-                            Navigator.pop(context);
-                            await context.read<InboxVM>().denySubmission(item['id']);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Submission Denied')),
-                              );
-                            }
-                          },
-                          child: const Text("Deny", style: TextStyle(color: Colors.white)),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.shade700,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade700,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            onPressed: () async {
+                              await context.read<InboxVM>().flagSubmission(item['id']);
+                              Navigator.pop(context);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Submission Flagged')),
+                                );
+                              }
+                            },
+                            child: const Text("Flag", style: TextStyle(color: Colors.white)),
                           ),
-                          onPressed: () async {
-                            Navigator.pop(context);
-                            await context.read<InboxVM>().flagSubmission(item['id']);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Submission Flagged')),
-                              );
-                            }
-                          },
-                          child: const Text("Flag", style: TextStyle(color: Colors.white)),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
               ),

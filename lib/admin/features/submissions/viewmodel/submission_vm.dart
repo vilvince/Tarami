@@ -1,59 +1,30 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/submission_model.dart';
+import '../../../AdminServices/admin_submissions_service.dart';
+import 'dart:math';
 
 class SubmissionVM extends ChangeNotifier {
+  final AdminSubmissionsService _service = AdminSubmissionsService();
+  StreamSubscription<List<SubmissionModel>>? _subscription;
+
+  //state
+  List<SubmissionModel> _allSubmissions = [];
+  bool _isLoading = true;
+  String? _error;
+
   String selectedFilter = "Approved";
   int currentPage = 1;
-  int rowsPerPage = 10;
+  int rowsPerPage = 5;
 
-  final List<SubmissionModel> _submissions = [
-    SubmissionModel(
-      email: "example@email.com",
-      submittedWord: "Feet",
-      dialect: "Central Bikol",
-      translation: "Bitis",
-      date: "03/25/2025",
-      partOfSpeech: "Noun",
-      status: "Approved",
-      phonetic: "fēt",
-      tagalog: "Paa",
-      definition: "The lower extremity of the leg below the ankle.",
-      example: "She hurt her foot while running.",
-      synonyms: "foot, extremity",
-    ),
-    SubmissionModel(
-      email: "user@email.com",
-      submittedWord: "Head",
-      dialect: "West Miraya",
-      translation: "Ulo",
-      date: "03/25/2025",
-      partOfSpeech: "Noun",
-      status: "Denied",
-      phonetic: "hed",
-      tagalog: "Ulo",
-      definition: "The upper part of the human body.",
-      example: "He nodded his head in agreement.",
-      synonyms: "cranium, skull",
-    ),
-    SubmissionModel(
-      email: "sample@email.com",
-      submittedWord: "Hand",
-      dialect: "Libon Bikol",
-      translation: "Kamot",
-      date: "03/25/2025",
-      partOfSpeech: "Noun",
-      status: "Flagged",
-      phonetic: "hand",
-      tagalog: "Kamay",
-      definition: "The end part of a person's arm.",
-      example: "She waved her hand.",
-      synonyms: "palm, fist",
-    ),
-  ];
+  //Getters
+  bool get isLoading => _isLoading;
+  String? get error => _error;
 
   List<SubmissionModel> get filteredItems {
-    if (selectedFilter == "All") return _submissions;
-    return _submissions.where((item) => item.status == selectedFilter).toList();
+    return _allSubmissions
+    .where((item) => item.status.toLowerCase() == selectedFilter.toLowerCase())
+    .toList();
   }
 
   List<SubmissionModel> get paginatedItems {
@@ -67,6 +38,30 @@ class SubmissionVM extends ChangeNotifier {
 
   int get totalPages =>
       (filteredItems.length / rowsPerPage).ceil().clamp(1, double.infinity).toInt();
+
+
+  SubmissionVM(){
+    _listenToSubmissions();
+  }
+
+  void _listenToSubmissions(){
+    _isLoading = true;
+    notifyListeners();
+    _subscription = _service.getReviewedSubmissionStream().listen(
+            (submissions) {
+              _allSubmissions = submissions;
+              _isLoading = false;
+              _error = null;
+              notifyListeners();
+            },
+              onError: (e){
+              _isLoading = false;
+              _error = "Failed to load submissions: $e";
+              notifyListeners();
+              },
+    );
+  }
+
 
   void setFilter(String filter) {
     selectedFilter = filter;
@@ -99,5 +94,10 @@ class SubmissionVM extends ChangeNotifier {
       currentPage = page;
       notifyListeners();
     }
+  }
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
   }
 }

@@ -13,19 +13,29 @@ class SubmissionPage extends StatelessWidget {
 
     return AdminScaffold(
       title: "View Submissions",
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              _buildFilters(vm),
-              const SizedBox(height: 20),
-              _buildTable(vm, context),
-              const SizedBox(height: 20),
-              _buildPagination(vm),
-            ],
+      child: vm.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : vm.error != null
+          ? Center(child: Text(vm.error!))
+      // ✅ WRAP YOUR CONTENT IN A SCROLLBAR AND SCROLLVIEW
+          : Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildFilters(vm),
+                  const SizedBox(height: 20),
+                  _buildTable(vm, context),
+                  const SizedBox(height: 20),
+                  if (vm.totalPages > 1) _buildPagination(vm),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -69,7 +79,6 @@ class SubmissionPage extends StatelessWidget {
               items: const [
                 DropdownMenuItem(value: 5, child: Text("5")),
                 DropdownMenuItem(value: 10, child: Text("10")),
-                DropdownMenuItem(value: 25, child: Text("25")),
               ],
               onChanged: (value) {
                 if (value != null) vm.setRowsPerPage(value);
@@ -117,7 +126,7 @@ class SubmissionPage extends StatelessWidget {
             DataColumn(label: Expanded(child: Center(child: Text("Date")))),
             DataColumn(label: Expanded(child: Center(child: Text("Part of Speech")))),
             DataColumn(label: Expanded(child: Center(child: Text("Status")))),
-            DataColumn(label: Expanded(child: Center(child: Text("Action")))),
+            DataColumn(label: Expanded(child: Center(child: Text("More")))),
           ],
           rows: vm.paginatedItems.map((item) {
             return DataRow(
@@ -150,16 +159,17 @@ class SubmissionPage extends StatelessWidget {
                                 children: [
                                   // Header with Close button
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
                                       Text(
-                                        "Details for ${item.email}",
+                                        "Details for ${item.submittedWord}",
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
+                                      const SizedBox(width:150 ),
                                       IconButton(
                                         icon: const Icon(Icons.close, color: Colors.white),
                                         onPressed: () => Navigator.pop(context),
@@ -175,7 +185,8 @@ class SubmissionPage extends StatelessWidget {
                                   _detailRow("Tagalog:", item.tagalog),
                                   _detailRow("Part of Speech:", item.partOfSpeech),
                                   _detailRow("Definition:", item.definition),
-                                  _detailRow("Example:", item.example),
+                                  _detailRow("Example Sentence in English:", item.exampleInEnglish),
+                                  _detailRow("Example Sentence in Dialect:", item.exampleInDialect),
                                   _detailRow("Synonyms:", item.synonyms),
                                 ],
                               ),
@@ -303,10 +314,10 @@ Widget _detailRow(String label, String value) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
-          width: 120,
+          width: 220,
           child: Text(
             label,
             style: const TextStyle(
