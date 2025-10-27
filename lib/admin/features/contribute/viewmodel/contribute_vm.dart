@@ -1,25 +1,28 @@
 import 'package:flutter/material.dart';
 import '../data/contribute_model.dart';
-
+import '../../../AdminServices/admin_contribute_service.dart';
 class AdminContributeViewModel extends ChangeNotifier {
-  // Controllers for form inputs
+  final AdminContributeService _service = AdminContributeService();
+
+// Form state
   final TextEditingController wordController = TextEditingController();
   final TextEditingController translationController = TextEditingController();
   final TextEditingController phoneticController = TextEditingController();
   final TextEditingController tagalogTranslationController = TextEditingController();
   final TextEditingController definitionController = TextEditingController();
-  final TextEditingController sentenceController = TextEditingController();
   final TextEditingController exampleSentenceInDialectController = TextEditingController();
   final TextEditingController exampleSentenceInEnglishController = TextEditingController();
   final TextEditingController synonymsController = TextEditingController();
-
-  // Dropdown selected values
   String? selectedDialect;
   String? selectedPartOfSpeech;
 
-  // Validation flag
+  // UI state
   bool showValidationErrors = false;
+  bool _isSubmitting = false;
+  String? _error;
 
+  bool get isSubmitting => _isSubmitting;
+  String? get error => _error;
 
   // Static lists
   final List<String> dialects = [
@@ -40,26 +43,6 @@ class AdminContributeViewModel extends ChangeNotifier {
     'Interjection',
   ];
 
-  // Contributions list
-  final List<ContributeModel> contributions = [];
-
-  //form validation
-  bool validateForm(){
-    showValidationErrors = true;
-    notifyListeners();
-
-    if (selectedDialect == null ||
-        selectedPartOfSpeech == null ||
-        wordController.text.isEmpty ||
-        translationController.text.isEmpty ||
-        phoneticController.text.isEmpty ||
-        tagalogTranslationController.text.isEmpty ||
-        definitionController.text.isEmpty ||
-        exampleSentenceInDialectController.text.isEmpty ||
-        exampleSentenceInEnglishController.text.isEmpty){
-      return false;
-    } return true;
-  }
 
   //Select handlers
   void selectDialect(String? dialect){
@@ -72,30 +55,52 @@ class AdminContributeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-
-
-
-  // Submit new contribution
-  void submitContribution() {
-    final newContribution = ContributeModel(
-      dialect: selectedDialect!,
-      word: wordController.text.trim(),
-      translation: translationController.text.trim(),
-      phonetic: phoneticController.text.trim(),
-      tagalogTranslation: tagalogTranslationController.text.trim(),
-      partOfSpeech: selectedPartOfSpeech!,
-      definition: definitionController.text.trim(),
-      exampleSentenceInDialect: exampleSentenceInDialectController.text.trim(),
-      exampleSentenceInEnglish: exampleSentenceInEnglishController.text.trim(),
-      synonyms: synonymsController.text.trim().isEmpty ? null: synonymsController.text.trim(),
-    );
-
-    contributions.add(newContribution);
-    clearForm();
+  bool validateForm() {
+    showValidationErrors = true;
     notifyListeners();
+
+    return selectedDialect != null &&
+        selectedPartOfSpeech != null &&
+        wordController.text.isNotEmpty &&
+        translationController.text.isNotEmpty &&
+        definitionController.text.isNotEmpty;
   }
 
-  // Reset form fields
+  Future<void> submitContribution() async {
+    if (!validateForm()) {
+      throw Exception("Please fill all required fields.");
+    }
+
+    _isSubmitting = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final newContribution = ContributeModel(
+        dialect: selectedDialect!,
+        word: wordController.text,
+        translation: translationController.text,
+        phonetic: phoneticController.text,
+        tagalogTranslation: tagalogTranslationController.text,
+        partOfSpeech: selectedPartOfSpeech!,
+        definition: definitionController.text,
+        exampleSentenceInDialect: exampleSentenceInDialectController.text,
+        exampleSentenceInEnglish: exampleSentenceInEnglishController.text,
+        synonyms: synonymsController.text,
+      );
+
+      await _service.submitDirectContribution(newContribution);
+      clearForm(); // Clear the form on successful submission
+    } catch (e) {
+      _error = e.toString();
+      // Rethrow the error so the UI can catch it and display a message
+      rethrow;
+    } finally {
+      _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
   void clearForm() {
     selectedDialect = null;
     selectedPartOfSpeech = null;
@@ -107,5 +112,21 @@ class AdminContributeViewModel extends ChangeNotifier {
     exampleSentenceInDialectController.clear();
     exampleSentenceInEnglishController.clear();
     synonymsController.clear();
+    showValidationErrors = false;
+    _error = null;
+    notifyListeners(); // Update UI after clearing
+  }
+
+  @override
+  void dispose() {
+    wordController.dispose();
+    translationController.dispose();
+    phoneticController.dispose();
+    tagalogTranslationController.dispose();
+    definitionController.dispose();
+    exampleSentenceInDialectController.dispose();
+    exampleSentenceInEnglishController.dispose();
+    synonymsController.dispose();
+    super.dispose();
   }
 }

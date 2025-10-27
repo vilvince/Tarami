@@ -94,7 +94,7 @@ class ContributePage extends StatelessWidget {
                           // Example in dialect
                           _buildTextField(
                               vm.exampleSentenceInDialectController,
-                              "Use the word in a sentence to show how it’s used",
+                              "Use the word in a sentence to show how it’s used in dialect",
                               "*Provide at least one example sentence",
                               vm,
                               maxLines: 2),
@@ -234,7 +234,7 @@ class ContributePage extends StatelessWidget {
   void showSummaryModal(BuildContext context, AdminContributeViewModel vm) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return Dialog(
           backgroundColor: const Color(0xFF0A2A44), // 🔹 Dark blue background
           shape: RoundedRectangleBorder(
@@ -242,69 +242,77 @@ class ContributePage extends StatelessWidget {
           child: Container(
             width: 400,
             padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "Review your submission:",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.white, // 🔹 White text
-                  ),
-                ),
-                const SizedBox(height: 12),
-                buildSummaryRow("Dialect:", vm.selectedDialect ?? ""),
-                buildSummaryRow("Word:", vm.wordController.text),
-                buildSummaryRow("Translation:", vm.translationController.text),
-                buildSummaryRow("Phonetic:", vm.phoneticController.text),
-                buildSummaryRow(
-                    "Tagalog:", vm.tagalogTranslationController.text),
-                buildSummaryRow(
-                    "Part of Speech:", vm.selectedPartOfSpeech ?? ""),
-                buildSummaryRow("Definition:", vm.definitionController.text),
-                buildSummaryRow("Example in Dialect:", vm.exampleSentenceInDialectController.text),
-                buildSummaryRow("Example (English):",
-                    vm.exampleSentenceInEnglishController.text),
-                buildSummaryRow("Synonyms:", vm.synonymsController.text),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        vm.submitContribution();
-                        Navigator.of(context).pop();
-                        showSuccessModal(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFC107),
-                        // 🔹 Yellow button
-                        foregroundColor: Colors.black,
-                        // 🔹 Black text
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
+                    const Text(
+                      "Review your submission:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white, // 🔹 White text
                       ),
-                      child: const Text("Submit"),
                     ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300], // 🔹 Grey for Edit
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                      ),
-                      child: const Text("Edit"),
-                    ),
+                    const SizedBox(height: 12),
+                    buildSummaryRow("Dialect:", vm.selectedDialect ?? ""),
+                    buildSummaryRow("Word:", vm.wordController.text),
+                    buildSummaryRow(
+                        "Translation:", vm.translationController.text),
+                    buildSummaryRow("Phonetic:", vm.phoneticController.text),
+                    buildSummaryRow(
+                        "Tagalog:", vm.tagalogTranslationController.text),
+                    buildSummaryRow(
+                        "Part of Speech:", vm.selectedPartOfSpeech ?? ""),
+                    buildSummaryRow(
+                        "Definition:", vm.definitionController.text),
+                    buildSummaryRow("Example in Dialect:",
+                        vm.exampleSentenceInDialectController.text),
+                    buildSummaryRow("Example (English):",
+                        vm.exampleSentenceInEnglishController.text),
+                    buildSummaryRow("Synonyms:", vm.synonymsController.text),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (vm.isSubmitting)
+                          const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        if (!vm.isSubmitting) ...[
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[300]),
+                            child: const Text("Edit"),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            // ✅ THIS IS THE UPDATED ONPRESSED LOGIC
+                            onPressed: () async {
+                              try {
+                                await vm.submitContribution();
+                                // On success, close the summary dialog and show the success modal.
+                                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                                if (context.mounted) showSuccessModal(context);
+                              } catch (e) {
+                                // On failure, close the summary dialog and show the new error modal.
+                                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                                if (context.mounted) {
+                                  _showErrorModal(context, e.toString());
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
+                            child: const Text("Submit"),
+                          ),
+                        ]
+                      ],
+                    )
                   ],
-                )
-              ],
+                );
+              },
             ),
           ),
         );
@@ -386,6 +394,52 @@ class ContributePage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showErrorModal(BuildContext context, String message) {
+    // Clean up the error message (removes "Exception: " prefix)
+    final displayMessage = message.startsWith('Exception: ') ? message.substring(11) : message;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: const Color(0xFF0A2A44), // Dark blue background
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.redAccent, size: 50),
+              const SizedBox(height: 16),
+              Text(
+                'Submission Failed',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                displayMessage, // Use the cleaned-up message
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade300,
+                  foregroundColor: Colors.black,
+                ),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
