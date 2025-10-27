@@ -13,7 +13,7 @@ class UserVM extends ChangeNotifier {
   String? _error;
 
   // Pagination State
-  int _rowsPerPage = 10;
+  int _rowsPerPage = 5;
   int _currentPage = 1;
 
   // Getters
@@ -32,7 +32,6 @@ class UserVM extends ChangeNotifier {
   List<UserModel> get paginatedUsers {
     final startIndex = (_currentPage - 1) * _rowsPerPage;
     if (startIndex >= _allUsers.length) return [];
-
     final endIndex = min(startIndex + _rowsPerPage, _allUsers.length);
     return _allUsers.sublist(startIndex, endIndex);
   }
@@ -83,15 +82,33 @@ class UserVM extends ChangeNotifier {
     }
   }
 
-  // --- Other Actions ---
+// --- Delete User (Seamless - No Loading Spinner) ---
   Future<bool> deleteUser(UserModel user) async {
     try {
+      // Store the user temporarily in case we need to rollback
+      final deletedUser = user;
+      final deletedIndex = _allUsers.indexWhere((u) => u.id == user.id);
+
+      // OPTIMISTIC UPDATE: Remove from UI immediately (instant feedback)
+      _allUsers.removeWhere((u) => u.id == user.id);
+
+      // Adjust current page if needed (if we deleted the last item on a page)
+      if (paginatedUsers.isEmpty && _currentPage > 1) {
+        _currentPage--;
+      }
+
+      notifyListeners(); // Update UI instantly
+
+      // Delete from Firebase in the background
       await _userService.deleteUser(user.id!);
-      // Refresh the whole list to ensure data consistency
-      await _loadAllUsers();
+
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = 'Failed to delete user: ${e.toString()}';
+
+      // ROLLBACK: If deletion fails, refresh the list to restore the user
+      await _loadAllUsers();
+
       notifyListeners();
       return false;
     }
