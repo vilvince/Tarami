@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/theme.dart'; // keep your theme for brandNavy, sidebarBg
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AdminSidebar extends StatelessWidget {
   const AdminSidebar({super.key});
@@ -66,7 +67,7 @@ class AdminSidebar extends StatelessWidget {
               child: SizedBox(
                 height: 150, // bigger logo area
                 child: Image.asset(
-                  'assets/Taramilogo.png',
+                  'assets/TaramiLogo.png',
                   fit: BoxFit.contain,
                 ),
               ),
@@ -100,8 +101,15 @@ class AdminSidebar extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
             child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/login');
+              onTap: () async { // Make it async
+                // Tell Firebase to sign out and wait for it to finish
+                await FirebaseAuth.instance.signOut();
+
+                // Now, navigate to the login page
+                if (context.mounted) {
+                  // Use pushReplacementNamed to prevent going back to the dashboard
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
               },
               child: Row(
                 children: const [

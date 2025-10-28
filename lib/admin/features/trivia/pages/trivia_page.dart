@@ -193,41 +193,69 @@ class _TriviaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cardNavy,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(blurRadius: 10, offset: Offset(0, 8), color: Color(0x14000000))
+          BoxShadow(
+            blurRadius: 10,
+            offset: Offset(0, 8),
+            color: Color(0x14000000),
+          ),
         ],
       ),
       child: Stack(
         children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                item.text,
-                style: const TextStyle(color: Colors.white, height: 1.4, fontSize: 14),
-                textAlign: TextAlign.center,
+          // ✅ Text area with padding so it won’t overlap icons
+          Padding(
+            padding: const EdgeInsets.only(top: 30.0, right: 40.0, left: 8.0),
+            child: Center(
+              child: SizedBox(
+                height: 120, // adjust the scrollable area height
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Text(
+                      item.text,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        height: 1.4,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
+
+
+
+          // ✅ Edit/Delete icons stay at top-right
           Positioned(
-            top: 0,
-            right: 0,
+            top: 4,
+            right: 4,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   tooltip: 'Edit',
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
                   onPressed: () => _openEditDialog(context, item),
-                  icon: const Icon(Icons.edit_outlined, color: Colors.lightBlue, size: 20),
+                  icon: const Icon(Icons.edit_outlined,
+                      color: Colors.lightBlue, size: 18),
                 ),
                 IconButton(
                   tooltip: 'Delete',
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
                   onPressed: () => _confirmDelete(context, item.id),
-                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  icon: const Icon(Icons.delete_outline,
+                      color: Colors.red, size: 18),
                 ),
               ],
             ),
