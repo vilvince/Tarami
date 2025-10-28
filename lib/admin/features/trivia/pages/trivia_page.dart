@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../layout/admin_scaffold.dart';
@@ -153,51 +152,54 @@ class _TriviaCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
           BoxShadow(
-              blurRadius: 10, offset: Offset(0, 8), color: Color(0x14000000))
+            blurRadius: 10,
+            offset: Offset(0, 8),
+            color: Color(0x14000000),
+          ),
         ],
       ),
       child: Stack(
         children: [
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                item.text,
-                style: const TextStyle(
-                  color: Colors.white,
-                  height: 1.35,
-                  fontSize: 13,
+          // ✅ Text area with padding so it won’t overlap icons
+          Padding(
+            padding: const EdgeInsets.only(top: 30.0, right: 40.0, left: 8.0),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Text(
+                  item.text,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    height: 1.4,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
           ),
+
+          // ✅ Edit/Delete icons stay at top-right
           Positioned(
             top: 4,
             right: 4,
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 2),
-                  child: IconButton(
-                    tooltip: 'Edit',
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                    onPressed: () => _openEditDialog(context, item),
-                    icon: const Icon(Icons.edit_outlined,
-                        color: Colors.lightBlue, size: 18),
-                  ),
+                IconButton(
+                  tooltip: 'Edit',
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                  onPressed: () => _openEditDialog(context, item),
+                  icon: const Icon(Icons.edit_outlined,
+                      color: Colors.lightBlue, size: 18),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 2),
-                  child: IconButton(
-                    tooltip: 'Delete',
-                    constraints: const BoxConstraints(),
-                    padding: EdgeInsets.zero,
-                    onPressed: () => _confirmDelete(context, vm, item.id),
-                    icon: const Icon(Icons.delete_outline,
-                        color: Colors.red, size: 18),
-                  ),
+                IconButton(
+                  tooltip: 'Delete',
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                  onPressed: () => _confirmDelete(context, vm, item.id),
+                  icon: const Icon(Icons.delete_outline,
+                      color: Colors.red, size: 18),
                 ),
               ],
             ),
@@ -273,7 +275,8 @@ class _TriviaCard extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, TriviaAdminVM vm, String id) async {
+  Future<void> _confirmDelete(
+      BuildContext context, TriviaAdminVM vm, String id) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -311,4 +314,3 @@ class _TriviaCard extends StatelessWidget {
     if (ok == true) vm.deleteTrivia(id);
   }
 }
-
