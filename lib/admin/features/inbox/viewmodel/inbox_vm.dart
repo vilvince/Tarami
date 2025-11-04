@@ -114,8 +114,8 @@ class InboxVM extends ChangeNotifier {
   Future<Map<String, dynamic>> approveSubmission(String submissionId) =>
       _submissionService.approveSubmission(submissionId);
 
-  Future<Map<String, dynamic>> denySubmission(String submissionId) =>
-      _submissionService.denySubmission(submissionId);
+  Future<Map<String, dynamic>> denySubmission(String submissionId, {String? reason}) =>
+      _submissionService.denySubmission(submissionId, reason: reason);
 
   Future<Map<String, dynamic>> flagSubmission(String submissionId) =>
       _submissionService.flagSubmission(submissionId);

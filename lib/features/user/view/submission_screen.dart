@@ -100,12 +100,31 @@ class _SubmissionScreenState extends State<SubmissionScreen> with SingleTickerPr
       'partOfSpeech': submission.partOfSpeech,
       'exampleSentence': submission.exampleSentence,
       'synonyms': submission.synonyms,
+      'rejectionReason': submission.rejectionReason ?? '',
     };
 
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => SubmissionDetailScreen(submission: submissionMap),
+      // ✅ Use PageRouteBuilder for custom transitions
+      PageRouteBuilder(
+        // pageBuilder is where you define the destination screen.
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            SubmissionDetailScreen(submission: submissionMap),
+
+        // transitionsBuilder is where you define the animation.
+        // Your existing animation code is perfect and goes here.
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0); // Start from the right edge of the screen
+          const end = Offset.zero;      // End at the center of the screen
+          const curve = Curves.ease;
+
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
       ),
     );
   }

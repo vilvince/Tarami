@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodel/dictionary_view_model.dart';
 import 'package:tarami_application/features/user/view/favorite_screen.dart';
+import 'package:tarami_application/core/services/voice_search_service.dart';
 
 
 class Dictionary extends StatefulWidget {
@@ -12,14 +13,21 @@ class Dictionary extends StatefulWidget {
   }
 
 
-class _DictionaryState extends State<Dictionary> {
+class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final VoiceSearchService _voiceService = VoiceSearchService();
   bool _isSearchLocked = false;
+  bool _isListening = false;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  String _recognizedText = "";
 
 
   @override
   void dispose() {
     _searchController.dispose();
+    _voiceService.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -30,6 +38,103 @@ class _DictionaryState extends State<Dictionary> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DictionaryViewModel>().initialize();
     });
+
+    // Setup pulse animation for microphone
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  Future<void> _startVoiceSearch() async {
+    final dictVm = Provider.of<DictionaryViewModel>(context, listen: false);
+    final isReady = await _voiceService.initialize();
+
+    if (!isReady) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Speech recognition not initialized')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isListening = true;
+      _recognizedText = "";
+    });
+    _showVoiceDialog();
+
+    await _voiceService.startListening(
+      onResult: (recognizedText) {
+        if (recognizedText.isNotEmpty) {
+          setState(() => _recognizedText = recognizedText);
+          _searchController.text = recognizedText;
+          dictVm.searchWords(recognizedText);
+        }
+      },
+      onListening: () {
+        setState(() => _isListening = true);
+      },
+      onNotListening: () {
+        setState(() => _isListening = false);
+        if (Navigator.canPop(context)) Navigator.pop(context);
+      },
+    );
+  }
+
+  void _showVoiceDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ScaleTransition(
+                    scale: _pulseAnimation,
+                    child: const Icon(Icons.mic, color: Colors.redAccent, size: 70),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _isListening ? "Listening..." : "Processing...",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _recognizedText.isEmpty ? "" : _recognizedText,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 30),
+                  TextButton(
+                    onPressed: () async {
+                      await _voiceService.stopListening();
+                      if (mounted) {
+                        setState(() => _isListening = false);
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: const Text(
+                      "Stop",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
   }
 
   @override
@@ -224,7 +329,18 @@ class _DictionaryState extends State<Dictionary> {
                     setState(() {});
                   },
                 )
-                    : const Icon(Icons.mic, color: Colors.grey, size: 25),
+                : GestureDetector(
+                  onTap: _isListening ? null : _startVoiceSearch,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.mic,
+                      color: _isListening ? Colors.white : Colors.grey[0],
+                      size: 25,
+                    ),
+                  ),
+                ),
               ),
               style: const TextStyle(color: Colors.black87),
               onTap: () => setState(() => _isSearchLocked = false), // ✅ Unlock
@@ -352,6 +468,7 @@ class _DictionaryState extends State<Dictionary> {
     final partOfSpeech = viewModel.getPartOfSpeech(word) ?? "Unknown";
     final sampleInEnglish = viewModel.getSampleSentenceInEnglish(word);
     final sampleInDialect = viewModel.getSampleSentence(word);
+    final audioUrl = viewModel.getAudioUrlForSelectedDialect();
 
 
     return SingleChildScrollView(
@@ -468,14 +585,27 @@ class _DictionaryState extends State<Dictionary> {
                           ],
                         ),
                       ),
-                      if (viewModel.hasAudio(word)) // 👈 show only if audio exists
-                        Transform.translate(
-                          offset: const Offset(-35, -15),
-                          child: const Icon(
-                            Icons.volume_up_outlined,
-                            size: 28,
-                            color: Colors.black,
-                          ),
+                      if (audioUrl != null && audioUrl.isNotEmpty) // 👈 show only if audio exists
+                        IconButton(
+                          icon: const Icon(Icons.volume_up_outlined, size: 28),
+                          color: Colors.black,
+                          tooltip: 'Listen to pronunciation',
+                          onPressed: () async {
+                            try {
+                              // Try to play the audio.
+                              await viewModel.playAudio(audioUrl);
+                            } catch (e) {
+                              // If it throws an error (like being offline), show a SnackBar.
+                              if (mounted) { // mounted is available because this is a StatefulWidget
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(e.toString().replaceFirst("Exception: ", "")),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
+                                );
+                              }
+                            }
+                          },
                         ),
                     ],
                   ),

@@ -114,12 +114,14 @@ class Translation {
   final String? translation;
   final String? sampleSentence;
   final String? phonetics;
+  final String? audioUrl;
 
   Translation({
     required this.dialect,
     this.translation,
     this.sampleSentence,
     this.phonetics,
+    this.audioUrl,
   });
 
   factory Translation.fromMap(Map<String, dynamic> data) {
@@ -128,6 +130,7 @@ class Translation {
       translation: data['translation'],
       sampleSentence: data['sample_sentence'],
       phonetics: data['phonetics'],
+      audioUrl: data['audioUrl'],
     );
   }
 }

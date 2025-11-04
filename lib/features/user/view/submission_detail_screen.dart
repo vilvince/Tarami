@@ -38,13 +38,7 @@ class SubmissionDetailScreen extends StatelessWidget {
                 child: SingleChildScrollView( // Scroll view for the content
                   // Padding for the content *within* the white area
                   padding: const EdgeInsets.fromLTRB(25, 45, 40, 20), // Added top padding back
-                  child: Container( // This is your original content "card"
-                    // This container might not even need its own background color anymore
-                    // if the parent provides the white. Or it can have a slightly different shade
-                    // or elevation for a card effect.
-                    // For now, let's assume it's just for padding and logical grouping.
-                    //padding: const EdgeInsets.all(10),
-
+                  child: Container(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min, // Make column only as tall as its content
@@ -107,6 +101,9 @@ class SubmissionDetailScreen extends StatelessWidget {
 
                         const SizedBox(height: 40),
                         buildDetailRow('Status:', submission['status']),
+                        if (submission['status']?.toLowerCase() == 'denied' &&
+                            (submission['rejectionReason']?.isNotEmpty ?? false))
+                          buildDetailRow('Reason:', submission['rejectionReason']),
                         buildDetailRow('Tagalog:', submission['tagalog']),
                         buildDetailRow('Translation:', submission['translation']),
                         buildDetailRow('Dialect:', submission['dialect']),
@@ -129,8 +126,14 @@ class SubmissionDetailScreen extends StatelessWidget {
   }
 
   Widget buildDetailRow(String label, String? value) {
-    // ... (buildDetailRow remains the same) ...
     Color valueColor = Colors.black;
+    FontWeight valueWeight = FontWeight.normal;
+
+    if (label == 'Reason:') {
+      valueColor = Colors.red.shade700;
+      valueWeight = FontWeight.bold;
+    }
+
     if (label == 'Status:') {
       switch (value?. toLowerCase()) {
         case 'approved':
@@ -173,7 +176,7 @@ class SubmissionDetailScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 color: valueColor,
-                fontWeight: label == 'Status:' ? FontWeight.bold : FontWeight.normal,
+                fontWeight: label == 'Status:' ? FontWeight.bold : valueWeight,
               ),
             ),
           ),

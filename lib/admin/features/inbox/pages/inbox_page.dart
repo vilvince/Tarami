@@ -178,6 +178,85 @@ class _InboxPageState extends State<InboxPage> {
     );
   }
 
+  Future<String?> _showDenyReasonDialog(BuildContext context) async {
+    // Predefined reasons for quick selection
+    final List<String> reasons = [
+      "Duplicate Submission",
+      "Incorrect Information",
+      "Inappropriate Content",
+      "Not a valid word for the dialect",
+      "Other (please specify)",
+    ];
+    String? selectedReason;
+    final TextEditingController otherReasonController = TextEditingController();
+
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        // Use StatefulBuilder to manage the state of the dialog internally
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Reason for Denial"),
+              content: SizedBox(
+                width: 400, // Give the dialog a fixed width
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ...reasons.map((reason) => RadioListTile<String>(
+                        title: Text(reason),
+                        value: reason,
+                        groupValue: selectedReason,
+                        onChanged: (value) {
+                          setState(() => selectedReason = value);
+                        },
+                      )),
+                      // If "Other" is selected, show a text field
+                      if (selectedReason == "Other (please specify)")
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0, left: 16, right: 16),
+                          child: TextField(
+                            controller: otherReasonController,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              hintText: "Specify reason for denial...",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, null), // Return null on cancel
+                  child: const Text("Cancel"),
+                ),
+                FilledButton(
+                  // Disable the button until a reason is selected
+                  onPressed: selectedReason == null
+                      ? null
+                      : () {
+                    if (selectedReason == "Other (please specify)") {
+                      // If "Other" is chosen, return the text from the controller
+                      Navigator.pop(dialogContext, otherReasonController.text.trim());
+                    } else {
+                      // Otherwise, return the selected radio button value
+                      Navigator.pop(dialogContext, selectedReason);
+                    }
+                  },
+                  child: const Text("Submit"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showActionModal(BuildContext context, Map<String, dynamic> item) {
     // --- Improvement: Split the combined example sentence field ---
     // Get the combined sentence string from Firestore (e.g., "Sentence in dialect|Sentence in English")
@@ -188,7 +267,7 @@ class _InboxPageState extends State<InboxPage> {
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (modalContext) => Dialog(
         backgroundColor: brandNavy, // 🔹 Solid Tarami blue
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Stack(
@@ -224,7 +303,16 @@ class _InboxPageState extends State<InboxPage> {
                     buildDetailRow("Example (Dialect)", dialectExample), // FIX: Display split sentence
                     buildDetailRow("Example (English)", englishExample), // FIX: Display split sentence
                     buildDetailRow("Synonyms", item['synonyms'] ?? ''),
-                    const SizedBox(height: 20),
+                    if ((item['status'] ?? '').toLowerCase() != 'pending' &&
+                        (item['rejection_reason'] as String?)?.isNotEmpty == true) ...[
+                      const Divider(color: Colors.white24, height: 24),
+                      buildDetailRow(
+                        "Reason",
+                        item['rejection_reason'],
+                      ),
+                      const Divider(color: Colors.white24, height: 24),
+                    ] else
+                      const SizedBox(height: 20),
                     if ((item['status'] ?? '').toLowerCase() == 'pending')
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -236,7 +324,7 @@ class _InboxPageState extends State<InboxPage> {
                             ),
                             onPressed: () async {
                               final result = await context.read<InboxVM>().approveSubmission(item['id']);
-                              Navigator.pop(context);
+                              Navigator.pop(modalContext);
                               if (mounted) { // Check if the widget is still in the tree
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -249,17 +337,22 @@ class _InboxPageState extends State<InboxPage> {
                             child: const Text("Approve", style: TextStyle(color: Colors.white)),
                           ),
                           ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade700,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                             onPressed: () async {
-                              await context.read<InboxVM>().denySubmission(item['id']);
-                              Navigator.pop(context);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Submission Denied')),
-                                );
+                              Navigator.pop(modalContext);
+                              final reason = await _showDenyReasonDialog(context);
+
+                              // 3. If the admin submitted a reason (didn't cancel)
+                              if (reason != null && reason.isNotEmpty) {
+                                await context.read<InboxVM>().denySubmission(item['id'], reason: reason);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Submission Denied with reason.'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               }
                             },
                             child: const Text("Deny", style: TextStyle(color: Colors.white)),
@@ -271,7 +364,7 @@ class _InboxPageState extends State<InboxPage> {
                             ),
                             onPressed: () async {
                               await context.read<InboxVM>().flagSubmission(item['id']);
-                              Navigator.pop(context);
+                              Navigator.pop(modalContext);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Submission Flagged')),

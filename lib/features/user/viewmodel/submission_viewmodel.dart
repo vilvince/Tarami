@@ -1,4 +1,3 @@
-// features/user/viewmodel/submission_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -72,6 +71,7 @@ class SubmissionViewModel extends ChangeNotifier {
           definition: data['definition'] ?? '',
           exampleSentence: combinedExample,
           synonyms: data['synonyms'] ?? 'N/A',
+          rejectionReason: data['rejection_reason'],
         );
       }).toList();
 

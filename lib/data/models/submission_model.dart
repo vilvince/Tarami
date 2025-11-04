@@ -1,4 +1,5 @@
-// lib/data/models/submission_model.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Submission {
   final String id;
   final String word;
@@ -12,7 +13,7 @@ class Submission {
   final String definition;
   final String exampleSentence;
   final String synonyms;
-  final String? etymology; // Optional field
+  final String? rejectionReason;
 
   Submission({
     required this.id,
@@ -27,6 +28,29 @@ class Submission {
     required this.definition,
     required this.exampleSentence,
     required this.synonyms,
-    this.etymology,
+    this.rejectionReason,
   });
+
+  factory Submission.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+
+    // Helper to capitalize status
+    String capitalize(String s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1);
+
+    return Submission(
+      id: doc.id,
+      word: data['word'] ?? '',
+      dialect: data['dialect'] ?? '',
+      date: (data['date_submitted'] as Timestamp? ?? Timestamp.now()).toDate(),
+      status: capitalize(data['status'] ?? 'Pending'),
+      translation: data['translation'] ?? '',
+      phonetics: data['phonetics'] ?? '',
+      tagalog: data['tagalog_translation'] ?? '',
+      definition: data['definition'] ?? '',
+      partOfSpeech: data['part_of_speech'] ?? '',
+      exampleSentence: data['example_sentence'] ?? '',
+      synonyms: data['synonyms'] ?? '',
+      rejectionReason: data['rejection_reason'], // ✅ READ THE NEW FIELD
+    );
+  }
 }

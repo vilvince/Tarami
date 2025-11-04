@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tarami_application/features/home/viewmodel/home_viewmodel.dart';
 import 'package:tarami_application/features/dictionary/viewmodel/dictionary_view_model.dart';
-import 'package:tarami_application/features/dictionary/view/dictionary_screen.dart';
 import 'package:tarami_application/widgets/main_scaffold.dart';
 import 'dart:async';
-
+import 'package:tarami_application/core/services/voice_search_service.dart';
 
 class HomeScreenPage extends StatefulWidget {
   const HomeScreenPage({super.key});
@@ -31,16 +30,122 @@ class HomeScreenContent extends StatefulWidget {
   State<HomeScreenContent> createState() => _HomeScreenContentState();
 }
 
-class _HomeScreenContentState extends State<HomeScreenContent> {
+class _HomeScreenContentState extends State<HomeScreenContent> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  final VoiceSearchService _voiceService = VoiceSearchService();
   bool _isSearching = false;
+  bool _isListening = false;
   Timer? _debounce;
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+  String _recognizedText = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _voiceService.dispose();
+    _pulseController.dispose();
     super.dispose();
+  }
+
+  Future<void> _startVoiceSearch() async {
+    final dictVm = Provider.of<DictionaryViewModel>(context, listen: false);
+    final isReady = await _voiceService.initialize();
+
+    if (!isReady) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Speech recognition not initialized')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isListening = true;
+      _recognizedText = "";
+    });
+    _showVoiceDialog();
+
+    await _voiceService.startListening(
+      onResult: (recognizedText) {
+        if (recognizedText.isNotEmpty) {
+          setState(() => _recognizedText = recognizedText);
+          _searchController.text = recognizedText;
+          dictVm.searchWords(recognizedText);
+        }
+      },
+      onListening: () {
+        setState(() => _isListening = true);
+      },
+      onNotListening: () {
+        setState(() => _isListening = false);
+        if (Navigator.canPop(context)) Navigator.pop(context);
+      },
+    );
+  }
+
+  void _showVoiceDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ScaleTransition(
+                    scale: _pulseAnimation,
+                    child: const Icon(Icons.mic, color: Colors.redAccent, size: 70),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _isListening ? "Listening..." : "Processing...",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _recognizedText.isEmpty ? "" : _recognizedText,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 30),
+                  TextButton(
+                    onPressed: () async {
+                      await _voiceService.stopListening();
+                      if (mounted) {
+                        setState(() => _isListening = false);
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: const Text(
+                      "Stop",
+                      style: TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
   }
 
   @override
@@ -50,12 +155,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false, // ✅ prevents auto screen resize
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Stack(
           alignment: Alignment.topCenter,
           children: [
-            // ✅ Logo position changes with keyboard
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -67,7 +171,6 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
               ),
             ),
 
-            // ✅ Search bar + results move up with keyboard
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
@@ -86,13 +189,16 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                   ),
                   const SizedBox(height: 10),
 
-                  // ✅ Search bar
+                  // Search bar (same design)
                   Container(
                     height: 50,
                     margin: const EdgeInsets.symmetric(horizontal: 30),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black26),
+                      border: Border.all(
+                        color: _isListening ? Colors.red : Colors.black26,
+                        width: _isListening ? 2 : 1,
+                      ),
                       borderRadius: BorderRadius.circular(25),
                     ),
                     child: Row(
@@ -108,32 +214,34 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
                               setState(() => _isSearching = true);
                               _debounce = Timer(const Duration(milliseconds: 100), () async {
                                 await dictVm.searchWords(query);
-                                setState(() => _isSearching = false ); // rebuild after debounce delay
+                                setState(() => _isSearching = false);
                               });
                             },
                             decoration: InputDecoration(
-                              hintText: 'Search...',
-                              hintStyle: const TextStyle(
-                                color: Colors.black54,
+                              hintText: _isListening ? 'Listening...' : 'Search...',
+                              hintStyle: TextStyle(
+                                color: _isListening ? Colors.red : Colors.black54,
                                 fontSize: 18,
                               ),
                               border: InputBorder.none,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                icon: const Icon(Icons.close,
-                                    color: Colors.grey, size: 22),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  dictVm.searchWords("");
-                                  setState(() {});
-                                },
-                              )
-                                  : const Icon(Icons.mic,
-                                  color: Colors.grey, size: 25),
                             ),
                             style: const TextStyle(color: Colors.black87),
+                          ),
+                        ),
+
+                        // ✅ New Google-style mic button
+                        GestureDetector(
+                          onTap: _isListening ? null : _startVoiceSearch,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.mic,
+                              color: _isListening ? Colors.white : Colors.grey[0],
+                              size: 25,
+                            ),
                           ),
                         ),
                       ],
@@ -142,18 +250,17 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
                   const SizedBox(height: 20),
 
-                  // ✅ Search results (fixed height, scrolls inside only)
                   if (_searchController.text.isNotEmpty && dictVm.searchResults.isNotEmpty)
                     _buildResultsList(dictVm)
                   else if (_searchController.text.isNotEmpty &&
                       dictVm.searchResults.isEmpty &&
                       !_isSearching)
                     const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Text(
-                          "No words found",
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        "No words found",
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
                     ),
                 ],
               ),
@@ -163,7 +270,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       ),
     );
   }
-  // ✅ Move this INSIDE the class
+
   Widget _buildResultsList(DictionaryViewModel dictVm) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 30),
@@ -201,5 +308,4 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
       ),
     );
   }
-
 }

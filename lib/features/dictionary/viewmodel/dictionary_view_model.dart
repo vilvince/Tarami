@@ -6,11 +6,14 @@ import 'package:tarami_application/core/services/connectivity_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:just_audio/just_audio.dart';
 
 class DictionaryViewModel extends ChangeNotifier {
   final DictionaryService _dictionaryService = DictionaryService();
   final UserActivityService _userActivityService = UserActivityService();
   final ConnectivityService _connectivityService = ConnectivityService();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
 
   // Dialect constants
   final List<String> _dialects = [
@@ -469,5 +472,36 @@ class DictionaryViewModel extends ChangeNotifier {
 
   bool hasAudio(String word) {
     return audioWords.contains(word.toLowerCase());
+  }
+
+  Future<void> playAudio(String? url) async{
+    final isConnected = await _connectivityService.isConnected();
+    if (!isConnected) {
+      // If offline, throw an error with a user-friendly message.
+      throw Exception("An internet connection is required to play audio.");
+    }
+    if(url == null || url.isEmpty){
+      print("Audio Url is empty, cannot play.");
+      return;
+    }try{
+      await _audioPlayer.setUrl(url);
+      _audioPlayer.play();
+    }catch(e){
+      print("Error playing audio: $e");
+      _errorMessage = "Could not play audio.";
+      notifyListeners();
+    }
+  }
+
+  String? getAudioUrlForSelectedDialect(){
+    if(_selectedWordEntry == null) return null;
+    try{
+      final dialectKey = _getDialectKey(selectedDialect);
+      return _selectedWordEntry!.translations
+          .firstWhere((t) => t.dialect == dialectKey)
+          .audioUrl;
+    }catch(e){
+      return null;
+    }
   }
 }
