@@ -18,6 +18,36 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
     super.initState();
     _checkConnectivity();
     _listenToConnectivity();
+    _checkRestrictionOnOpen();
+  }
+
+  Future<void> _checkRestrictionOnOpen() async{
+    final vm = context.read<ContributeViewModel>();
+    await vm.checkRestrictionStatus();
+
+    if (vm.isRestricted && mounted){
+      _showRestrictionDialog(vm.restrictionLiftDate);
+    }
+  }
+
+  void _showRestrictionDialog(DateTime? liftDate) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("🚫 Temporary Restriction"),
+        content: Text(
+          "You are temporarily restricted from contributing new words until "
+              "${liftDate != null ? liftDate.toLocal().toString().split(' ')[0] : 'further notice'}.\n\n"
+              "Please wait until the restriction period ends.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   // Check initial connectivity - FIXED for newer API
@@ -91,9 +121,14 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => ContributeViewModel(),
+      create: (_) => ContributeViewModel()..checkRestrictionStatus(),
       child: Consumer<ContributeViewModel>(
         builder: (context, vm, _) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (vm.isRestricted){
+              _showRestrictionDialog(vm.restrictionLiftDate);
+            }
+          });
           return Theme(
             data: Theme.of(context).copyWith(
               textSelectionTheme: const TextSelectionThemeData(
@@ -114,12 +149,12 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
               ),
             ),
             child: Scaffold(
-              backgroundColor: const Color(0xff12283b),
+              backgroundColor: vm.isRestricted ? Colors.white : const Color(0xff12283b),
               body: _isOnline
                   ? _buildContributeForm(context, vm)
                   : Scaffold(
-                    backgroundColor: Colors.white,
-                    body: _buildOfflineContent(),
+                backgroundColor: Colors.white,
+                body: _buildOfflineContent(),
               ),
             ),
           );
@@ -194,6 +229,55 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
   }
 
   Widget _buildContributeForm(BuildContext context, ContributeViewModel vm) {
+    if (vm.isRestricted) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.block, color: Colors.redAccent, size: 100),
+              const SizedBox(height: 20),
+              const Text(
+                "🚫 You are temporarily restricted",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "You cannot contribute new words until "
+                    "${vm.restrictionLiftDate != null ? vm.restrictionLiftDate!.toLocal().toString().split(' ')[0] : 'further notice'}.",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, color: Colors.black87),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  // Optional: Re-check restriction
+                  await vm.checkRestrictionStatus();
+                  if (!vm.isRestricted && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("✅ Restriction lifted! You may now contribute.")),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                icon: const Icon(Icons.refresh),
+                label: const Text("Check Again"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Column(
       children: [
         // Optional: Show banner even when online but want to inform user
@@ -460,6 +544,7 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
           maxLines: maxLines,
           enabled: !vm.isSubmitting,
           style: const TextStyle(color: Colors.black),
+          textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(
             labelText: label,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),

@@ -36,9 +36,11 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
   bool _isSearching = false;
   bool _isListening = false;
   Timer? _debounce;
+  Timer? _idleTimer;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   String _recognizedText = "";
+  bool _showIdleMessage = false;
 
   @override
   void initState() {
@@ -55,6 +57,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
   @override
   void dispose() {
     _debounce?.cancel();
+    _idleTimer?.cancel();
     _searchController.dispose();
     _voiceService.dispose();
     _pulseController.dispose();
@@ -75,11 +78,17 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
     setState(() {
       _isListening = true;
       _recognizedText = "";
+      _showIdleMessage = false;
     });
+
     _showVoiceDialog();
+
+    // Start idle timer (show message after 5 seconds of no speech)
+    _startIdleTimer();
 
     await _voiceService.startListening(
       onResult: (recognizedText) {
+        _idleTimer?.cancel(); // Cancel idle timer when speech is detected
         if (recognizedText.isNotEmpty) {
           setState(() => _recognizedText = recognizedText);
           _searchController.text = recognizedText;
@@ -87,65 +96,97 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
         }
       },
       onListening: () {
-        setState(() => _isListening = true);
+        setState(() {
+          _isListening = true;
+          _showIdleMessage = false;
+        });
       },
       onNotListening: () {
         setState(() => _isListening = false);
+        _idleTimer?.cancel();
         if (Navigator.canPop(context)) Navigator.pop(context);
       },
     );
   }
 
+  void _startIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted && _recognizedText.isEmpty) {
+        setState(() => _showIdleMessage = true);
+      }
+    });
+  }
+
   void _showVoiceDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true, // ✅ Allow closing by tapping outside
       builder: (context) {
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: const Icon(Icons.mic, color: Colors.redAccent, size: 70),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _isListening ? "Listening..." : "Processing...",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _recognizedText.isEmpty ? "" : _recognizedText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 30),
-                  TextButton(
-                    onPressed: () async {
-                      await _voiceService.stopListening();
-                      if (mounted) {
-                        setState(() => _isListening = false);
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: const Text(
-                      "Stop",
-                      style: TextStyle(color: Colors.red),
+        return WillPopScope(
+          onWillPop: () async {
+            // Stop listening when dialog is dismissed
+            await _voiceService.stopListening();
+            _idleTimer?.cancel();
+            if (mounted) {
+              setState(() => _isListening = false);
+            }
+            return true;
+          },
+          child: StatefulBuilder(builder: (context, setStateDialog) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ScaleTransition(
+                      scale: _pulseAnimation,
+                      child: Icon(
+                        Icons.mic,
+                        color: _showIdleMessage ? Colors.orange : Colors.redAccent,
+                        size: 70,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    Text(
+                      _showIdleMessage
+                          ? "Please try again"
+                          : _isListening
+                          ? "Listening..."
+                          : "Processing...",
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w500,
+                        color: _showIdleMessage ? Colors.orange : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _recognizedText.isEmpty
+                          ? (_showIdleMessage ? "No speech detected" : "Speak now...")
+                          : _recognizedText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ),
-          );
-        });
+            );
+          }),
+        );
       },
-    );
+    ).then((_) {
+      // Cleanup when dialog closes
+      _voiceService.stopListening();
+      _idleTimer?.cancel();
+      if (mounted) {
+        setState(() => _isListening = false);
+      }
+    });
   }
 
   @override
@@ -189,7 +230,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                   ),
                   const SizedBox(height: 10),
 
-                  // Search bar (same design)
+                  // Search bar
                   Container(
                     height: 50,
                     margin: const EdgeInsets.symmetric(horizontal: 30),
@@ -205,6 +246,7 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                       children: [
                         Expanded(
                           child: TextField(
+                            textCapitalization: TextCapitalization.sentences,
                             cursorColor: Colors.black,
                             controller: _searchController,
                             textAlign: TextAlign.left,
@@ -226,22 +268,23 @@ class _HomeScreenContentState extends State<HomeScreenContent> with SingleTicker
                               border: InputBorder.none,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                icon: const Icon(Icons.close,
+                                    color: Colors.grey, size: 22),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  dictVm.searchWords("");
+                                  setState(() {});
+                                },
+                              )
+                                  : IconButton(
+                                icon: const Icon(Icons.mic,
+                                    color: Colors.grey, size: 25),
+                                onPressed: _startVoiceSearch,
+                              ),
                             ),
                             style: const TextStyle(color: Colors.black87),
-                          ),
-                        ),
-
-                        // ✅ New Google-style mic button
-                        GestureDetector(
-                          onTap: _isListening ? null : _startVoiceSearch,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(8),
-                            child: Icon(
-                              Icons.mic,
-                              color: _isListening ? Colors.white : Colors.grey[0],
-                              size: 25,
-                            ),
                           ),
                         ),
                       ],

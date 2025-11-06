@@ -13,6 +13,7 @@ class InboxItem {
   final String definition;
   final String example;
   final String synonyms;
+  final String? rejectionReason;
 
   String status; // "Pending" or "Reviewed"
 
@@ -29,5 +30,6 @@ class InboxItem {
     this.definition = "",
     this.example = "",
     this.synonyms = "",
+    this.rejectionReason,
   });
 }

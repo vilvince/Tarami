@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:tarami_application/data/models/contribute_model.dart';
 import 'package:tarami_application/core/services/contribution_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ContributeViewModel extends ChangeNotifier {
   final ContributionService _contributionService = ContributionService();
+  final _firestore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+
+  // 🔒 Restriction fields
+  bool isRestricted = false;
+  DateTime? restrictionLiftDate;
+
 
   // Dropdown data
   final List<String> dialects = [
@@ -60,6 +69,35 @@ class ContributeViewModel extends ChangeNotifier {
     isLoadingCount = false;
     notifyListeners();
   }
+//Check the restriction from firestore
+  Future<void> checkRestrictionStatus() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    if (!userDoc.exists) return;
+
+    final data = userDoc.data()!;
+    final restricted = data['isTemporarilyRestricted'] ?? false;
+    final liftDate = data['restrictionLiftDate'] != null
+        ? (data['restrictionLiftDate'] as Timestamp).toDate()
+        : null;
+
+    if (restricted && liftDate != null && liftDate.isAfter(DateTime.now())) {
+      isRestricted = true;
+      restrictionLiftDate = liftDate;
+    } else {
+      // Auto-remove restriction if expired
+      isRestricted = false;
+      restrictionLiftDate = null;
+      await _firestore.collection('users').doc(user.uid).update({
+        'isTemporarilyRestricted': false,
+        'restrictionLiftDate': null,
+      });
+    }
+
+    notifyListeners();
+  }
 
   // Dropdown selection
   void selectDialect(String? value) {
@@ -94,6 +132,16 @@ class ContributeViewModel extends ChangeNotifier {
   // Submit form to Firebase
   Future<bool> submitForm() async {
     if (!validateForm()) return false;
+
+    // 🛑 Check temporary restriction before submission
+    await checkRestrictionStatus();
+    if (isRestricted) {
+      errorMessage =
+      'You are temporarily restricted from contributing new words until ${restrictionLiftDate?.toLocal().toString().split(" ")[0]}.';
+      notifyListeners();
+      return false;
+    }
+
 
     // Double-check submission limit
     final canSubmitNow = await _contributionService.checkDailySubmissionLimit();

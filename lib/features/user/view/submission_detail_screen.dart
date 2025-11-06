@@ -8,6 +8,9 @@ class SubmissionDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String? reason = submission['rejectionReason'] ??
+        submission['rejection_reason'] ??
+        submission['review_notes'];
     return Scaffold(
       backgroundColor: const Color(0xFF0d2334), // Dark background for the whole screen
       body: SafeArea(
@@ -101,9 +104,10 @@ class SubmissionDetailScreen extends StatelessWidget {
 
                         const SizedBox(height: 40),
                         buildDetailRow('Status:', submission['status']),
-                        if (submission['status']?.toLowerCase() == 'denied' &&
-                            (submission['rejectionReason']?.isNotEmpty ?? false))
-                          buildDetailRow('Reason:', submission['rejectionReason']),
+                        if ((submission['status']?.toLowerCase() == 'denied' ||
+                            submission['status']?.toLowerCase() == 'flagged') &&
+                            (reason?.isNotEmpty ?? false))
+                          buildDetailRow('Reason:', reason),
                         buildDetailRow('Tagalog:', submission['tagalog']),
                         buildDetailRow('Translation:', submission['translation']),
                         buildDetailRow('Dialect:', submission['dialect']),

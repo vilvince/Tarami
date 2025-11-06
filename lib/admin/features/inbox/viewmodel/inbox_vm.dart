@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../AdminServices/admin_inbox_service.dart'; // Adjust path if needed
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class InboxVM extends ChangeNotifier {
   final AdminSubmissionService _submissionService = AdminSubmissionService();
@@ -16,24 +17,74 @@ class InboxVM extends ChangeNotifier {
   int _currentPage = 1;
   int _rowsPerPage = 10;
 
+  String _selectedDateRange = "Month";
+
   // Getters for the UI
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get selectedFilter => _selectedFilter;
   int get currentPage => _currentPage;
   int get rowsPerPage => _rowsPerPage;
+  String get selectedDateRange => _selectedDateRange;
+
 
   /// Returns the correctly filtered list of submissions based on the selected tab.
   List<Map<String, dynamic>> get filteredItems {
+    List<Map<String, dynamic>> statusFiltered;
+    String dateFieldToUse;
+
+    // --- First, filter by status ---
     switch (_selectedFilter) {
       case "Pending":
-        return _allSubmissions.where((item) => item['status'] == 'pending').toList();
+        statusFiltered = _allSubmissions.where((item) => item['status'] == 'pending').toList();
+        dateFieldToUse = 'date_submitted';
+        break;
       case "Reviewed":
-        return _allSubmissions.where((item) => ['approved', 'denied', 'flagged'].contains(item['status'])).toList();
+        statusFiltered = _allSubmissions.where((item) => ['approved', 'denied', 'flagged'].contains(item['status'])).toList();
+        dateFieldToUse = 'reviewed_at';
+        break;
       case "All":
       default:
-        return _allSubmissions;
+        statusFiltered = _allSubmissions;
+        dateFieldToUse = 'date_submitted';
     }
+
+    // --- Second, filter the result by date range ---
+    final now = DateTime.now();
+    DateTime startDate;
+    switch (_selectedDateRange) {
+      case "Month":
+        startDate = now.subtract(const Duration(days: 30));
+        break;
+      case "Year":
+        startDate = now.subtract(const Duration(days: 365));
+        break;
+      case "Week":
+      default:
+        startDate = now.subtract(const Duration(days: 7));
+    }
+
+    final dateFiltered = statusFiltered.where((item) {
+      final dateDynamic = item[dateFieldToUse]; // Use the correct date field for filtering
+      if (dateDynamic is Timestamp) {
+        final date = dateDynamic.toDate();
+        return date.isAfter(startDate);
+      }
+      return false; // Don't include items with invalid dates
+    }).toList();
+
+    // 3. Sort the final list
+    // This ensures the correct sort order is applied *after* all filtering.
+    dateFiltered.sort((a, b) {
+      final dateA = a[dateFieldToUse] as Timestamp?;
+      final dateB = b[dateFieldToUse] as Timestamp?;
+      if (dateA == null && dateB == null) return 0;
+      if (dateA == null) return 1; // Put nulls at the end
+      if (dateB == null) return -1;
+      return dateB.compareTo(dateA); // Newest first
+    });
+
+    return dateFiltered;
   }
 
   /// Returns the portion of the filtered list for the current page.
@@ -84,6 +135,12 @@ class InboxVM extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setDateRangeFilter(String range) {
+    _selectedDateRange = range;
+    _currentPage = 1; // Reset pagination
+    notifyListeners();
+  }
+
   void setRowsPerPage(int value) {
     _rowsPerPage = value;
     _currentPage = 1;
@@ -117,8 +174,8 @@ class InboxVM extends ChangeNotifier {
   Future<Map<String, dynamic>> denySubmission(String submissionId, {String? reason}) =>
       _submissionService.denySubmission(submissionId, reason: reason);
 
-  Future<Map<String, dynamic>> flagSubmission(String submissionId) =>
-      _submissionService.flagSubmission(submissionId);
+  Future<Map<String, dynamic>> flagSubmission(String submissionId, {String? reason}) =>
+      _submissionService.flagSubmission(submissionId, reason: reason);
 
   @override
   void dispose() {

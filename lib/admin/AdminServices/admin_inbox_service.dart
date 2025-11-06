@@ -205,25 +205,104 @@ class AdminSubmissionService {
         };
       }
 
+      // 1️⃣ Get the submission document
+      final submissionDoc = await _firestore
+          .collection('word_submissions')
+          .doc(submissionId)
+          .get();
+
+      if (!submissionDoc.exists) {
+        return {
+          'success': false,
+          'message': 'Submission not found',
+        };
+      }
+
+      final submissionData = submissionDoc.data()!;
+      final userId = submissionData['submitted_by'] ??
+          submissionData['submittedId'] ??
+          submissionData['userId'] ??
+          submissionData['submitted_id'];
+
+      final userEmail = submissionData['submitted_by_email'] ??
+          submissionData['user_email'] ??
+          submissionData['submittedEmail'];
+
+      if (userId == null || userId.toString().isEmpty) {
+        return {
+          'success': false,
+          'message': 'No valid user ID found in submission document',
+        };
+      }
+
+      // 2️⃣ Update the submission status to "flagged"
       await _updateSubmissionStatus(
         submissionId,
         'flagged',
         reviewNotes: reason ?? 'Flagged for review',
       );
 
-      return {
-        'success': true,
-        'message': 'Submission flagged',
+      // 3️⃣ Update the user's flag count
+      final userRef = _firestore.collection('users').doc(userId);
+      final userDoc = await userRef.get();
+
+      if (!userDoc.exists) {
+        return {
+          'success': false,
+          'message': 'User document not found',
+        };
+      }
+
+      final userData = userDoc.data()!;
+      final currentFlagCount = userData['flagCount'] ?? 0;
+      final newFlagCount = currentFlagCount + 1;
+
+      // 4️⃣ Create flag record
+      final flagRecord = {
+        'reason': reason ?? 'Flagged for review',
+        'date': Timestamp.now(),
+        'submissionId': submissionId,
+        'flaggedBy': _adminUserId,
       };
 
+      // 5️⃣ Update user document
+      await userRef.update({
+        'flagCount': newFlagCount,
+        'flags': FieldValue.arrayUnion([flagRecord]),
+      });
+      //Restirction logic
+
+      if (newFlagCount >= 3 && newFlagCount <= 4){
+        final LiftDate = DateTime.now().add(const Duration(days: 7));
+
+        await userRef.update({
+          'isTemporarilyRestricted': true,
+          'restrictionLiftDate': LiftDate,
+        });
+
+        print("User temporarily restricted for 7 days (until $LiftDate)");
+
+      } else if (newFlagCount >= 5) {
+        await userRef.update({
+          'isPermanentlyBanned': true,
+        });
+
+        print("⛔ User permanently banned due to repeated offenses.");
+      }
+
+      return {
+        'success': true,
+        'message': 'Submission flagged. User now has $newFlagCount flag(s).',
+        'flagCount': newFlagCount,
+      };
     } catch (e) {
-      print('Error flagging submission: $e');
       return {
         'success': false,
         'message': 'Failed to flag submission: $e',
       };
     }
   }
+
 
   // ==========================================
   // HELPER METHODS

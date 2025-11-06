@@ -27,6 +27,7 @@ class ContributionService {
       // Prepare submission data
       final submissionData = {
         'submitted_id': docRef.id,
+        'submitted_by': user.uid,
         'submitted_by_email': user.email ?? 'anonymous',
         'date_submitted': FieldValue.serverTimestamp(),
         'word': contribution.word,

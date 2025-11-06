@@ -71,7 +71,8 @@ class SubmissionViewModel extends ChangeNotifier {
           definition: data['definition'] ?? '',
           exampleSentence: combinedExample,
           synonyms: data['synonyms'] ?? 'N/A',
-          rejectionReason: data['rejection_reason'],
+          rejectionReason: data['rejection_reason'] ?? data['review_notes'],
+
         );
       }).toList();
 

@@ -16,7 +16,7 @@ class InboxPage extends StatefulWidget {
 }
 
 class _InboxPageState extends State<InboxPage> {
-  String selectedFilterRange = "Week"; // Default filter range
+
 
   @override
   void dispose() {
@@ -66,9 +66,7 @@ class _InboxPageState extends State<InboxPage> {
         const Spacer(),
         PopupMenuButton<String>(
           onSelected: (value) {
-            setState(() {
-              selectedFilterRange = value;
-            });
+            vm.setDateRangeFilter(value);
           },
           itemBuilder: (context) => const [
             PopupMenuItem(value: "Week", child: Text("Week")),
@@ -257,6 +255,82 @@ class _InboxPageState extends State<InboxPage> {
     );
   }
 
+  Future<String?> _showFlagReasonDialog(BuildContext context) async {
+    // Predefined reasons for flagging a submission
+    final List<String> reasons = [
+      "Suspicious Content",
+      "Repeated Offense",
+      "Inappropriate Language",
+      "Incorrect Information",
+      "Other (please specify)",
+    ];
+
+    String? selectedReason;
+    final TextEditingController otherReasonController = TextEditingController();
+
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Reason for Flagging"),
+              content: SizedBox(
+                width: 400,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ...reasons.map((reason) => RadioListTile<String>(
+                        title: Text(reason),
+                        value: reason,
+                        groupValue: selectedReason,
+                        onChanged: (value) {
+                          setState(() => selectedReason = value);
+                        },
+                      )),
+                      if (selectedReason == "Other (please specify)")
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0, left: 16, right: 16),
+                          child: TextField(
+                            controller: otherReasonController,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              hintText: "Specify reason for flagging...",
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, null), // Cancel
+                  child: const Text("Cancel"),
+                ),
+                FilledButton(
+                  onPressed: selectedReason == null
+                      ? null
+                      : () {
+                    if (selectedReason == "Other (please specify)") {
+                      Navigator.pop(dialogContext, otherReasonController.text.trim());
+                    } else {
+                      Navigator.pop(dialogContext, selectedReason);
+                    }
+                  },
+                  child: const Text("Submit"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+
   void _showActionModal(BuildContext context, Map<String, dynamic> item) {
     // --- Improvement: Split the combined example sentence field ---
     // Get the combined sentence string from Firestore (e.g., "Sentence in dialect|Sentence in English")
@@ -264,6 +338,17 @@ class _InboxPageState extends State<InboxPage> {
     final List<String> exampleParts = combinedExample.split('|');
     final String dialectExample = exampleParts.isNotEmpty ? exampleParts[0] : 'N/A';
     final String englishExample = exampleParts.length > 1 ? exampleParts[1] : 'N/A';
+
+    final String status = (item['status'] ?? '').toLowerCase();
+
+    // 2. Find the correct reason based on the status
+    String? reason = '';
+    if (status == 'denied') {
+      reason = item['rejection_reason'] as String?;
+    } else if (status == 'flagged') {
+      reason = item['review_notes'] as String?; // Look in 'review_notes' for flagged items
+    }
+    final bool hasReason = reason?.isNotEmpty ?? false;
 
     showDialog(
       context: context,
@@ -303,12 +388,11 @@ class _InboxPageState extends State<InboxPage> {
                     buildDetailRow("Example (Dialect)", dialectExample), // FIX: Display split sentence
                     buildDetailRow("Example (English)", englishExample), // FIX: Display split sentence
                     buildDetailRow("Synonyms", item['synonyms'] ?? ''),
-                    if ((item['status'] ?? '').toLowerCase() != 'pending' &&
-                        (item['rejection_reason'] as String?)?.isNotEmpty == true) ...[
+                    if (hasReason) ...[
                       const Divider(color: Colors.white24, height: 24),
                       buildDetailRow(
-                        "Reason",
-                        item['rejection_reason'],
+                        "Reason:",
+                        reason!, // We know 'reason' is not empty here
                       ),
                       const Divider(color: Colors.white24, height: 24),
                     ] else
@@ -363,12 +447,19 @@ class _InboxPageState extends State<InboxPage> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             onPressed: () async {
-                              await context.read<InboxVM>().flagSubmission(item['id']);
                               Navigator.pop(modalContext);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Submission Flagged')),
-                                );
+                              final reason = await _showFlagReasonDialog(context);
+
+                              if (reason != null && reason.isNotEmpty) {
+                                await context.read<InboxVM>().flagSubmission(item['id'], reason: reason);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Submission Flagged'),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
                               }
                             },
                             child: const Text("Flag", style: TextStyle(color: Colors.white)),

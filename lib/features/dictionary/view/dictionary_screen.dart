@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../viewmodel/dictionary_view_model.dart';
 import 'package:tarami_application/features/user/view/favorite_screen.dart';
 import 'package:tarami_application/core/services/voice_search_service.dart';
-
+import 'dart:async';
 
 class Dictionary extends StatefulWidget {
   const Dictionary({super.key});
@@ -18,9 +18,11 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
   final VoiceSearchService _voiceService = VoiceSearchService();
   bool _isSearchLocked = false;
   bool _isListening = false;
+  bool _showIdleMessage = false;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   String _recognizedText = "";
+  Timer? _idleTimer;
 
 
   @override
@@ -28,6 +30,7 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
     _searchController.dispose();
     _voiceService.dispose();
     _pulseController.dispose();
+    _idleTimer?.cancel();
     super.dispose();
   }
 
@@ -64,8 +67,11 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
     setState(() {
       _isListening = true;
       _recognizedText = "";
+      _showIdleMessage = false;
     });
     _showVoiceDialog();
+    // Start idle timer (show message after 5 seconds of no speech)
+    _startIdleTimer();
 
     await _voiceService.startListening(
       onResult: (recognizedText) {
@@ -76,65 +82,96 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
         }
       },
       onListening: () {
-        setState(() => _isListening = true);
+        setState(() {
+          _isListening = true;
+          _showIdleMessage = false;
+        });
       },
       onNotListening: () {
         setState(() => _isListening = false);
+        _idleTimer?.cancel();
         if (Navigator.canPop(context)) Navigator.pop(context);
       },
     );
+  }
+  void _startIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted && _recognizedText.isEmpty) {
+        setState(() => _showIdleMessage = true);
+      }
+    });
   }
 
   void _showVoiceDialog() {
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true, // ✅ Allow closing by tapping outside
       builder: (context) {
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ScaleTransition(
-                    scale: _pulseAnimation,
-                    child: const Icon(Icons.mic, color: Colors.redAccent, size: 70),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    _isListening ? "Listening..." : "Processing...",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _recognizedText.isEmpty ? "" : _recognizedText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 30),
-                  TextButton(
-                    onPressed: () async {
-                      await _voiceService.stopListening();
-                      if (mounted) {
-                        setState(() => _isListening = false);
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: const Text(
-                      "Stop",
-                      style: TextStyle(color: Colors.red),
+        return WillPopScope(
+          onWillPop: () async {
+            // Stop listening when dialog is dismissed
+            await _voiceService.stopListening();
+            _idleTimer?.cancel();
+            if (mounted) {
+              setState(() => _isListening = false);
+            }
+            return true;
+          },
+          child: StatefulBuilder(builder: (context, setStateDialog) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ScaleTransition(
+                      scale: _pulseAnimation,
+                      child: Icon(
+                        Icons.mic,
+                        color: _showIdleMessage ? Colors.orange : Colors.redAccent,
+                        size: 70,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    Text(
+                      _showIdleMessage
+                          ? "Please try again"
+                          : _isListening
+                          ? "Listening..."
+                          : "Processing...",
+                      style: TextStyle(
+                        fontSize: 25,
+                        fontWeight: FontWeight.w500,
+                        color: _showIdleMessage ? Colors.orange : Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _recognizedText.isEmpty
+                          ? (_showIdleMessage ? "No speech detected" : "Speak now...")
+                          : _recognizedText,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
-            ),
-          );
-        });
+            );
+          }),
+        );
       },
-    );
+    ).then((_) {
+      // Cleanup when dialog closes
+      _voiceService.stopListening();
+      _idleTimer?.cancel();
+      if (mounted) {
+        setState(() => _isListening = false);
+      }
+    });
   }
 
   @override
@@ -295,6 +332,7 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
+              textCapitalization: TextCapitalization.sentences,
               readOnly: _isSearchLocked,
               cursorColor: Colors.black,
               controller: _searchController, // ✅ attach controller here

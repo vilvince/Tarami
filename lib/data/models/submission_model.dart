@@ -50,7 +50,7 @@ class Submission {
       partOfSpeech: data['part_of_speech'] ?? '',
       exampleSentence: data['example_sentence'] ?? '',
       synonyms: data['synonyms'] ?? '',
-      rejectionReason: data['rejection_reason'], // ✅ READ THE NEW FIELD
+      rejectionReason: data['rejection_reason'] ?? data['review_notes'],
     );
   }
 }

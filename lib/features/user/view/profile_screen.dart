@@ -344,6 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         validator: validator,
         enabled: enabled,
         readOnly: readOnly,
+        textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.black87),
