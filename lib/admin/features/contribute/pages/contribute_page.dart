@@ -94,8 +94,8 @@ class ContributePage extends StatelessWidget {
                           // Example in dialect
                           _buildTextField(
                               vm.exampleSentenceInDialectController,
-                              "Use the word in a sentence to show how it’s used in dialect",
-                              "*Provide at least one example sentence",
+                              "Example sentences in the selected dialect",
+                              "*Provide at least one example sentence in the selected dialect",
                               vm,
                               maxLines: 2),
                           const SizedBox(height: 16),
@@ -103,8 +103,8 @@ class ContributePage extends StatelessWidget {
                           // Example in English
                           _buildTextField(
                               vm.exampleSentenceInEnglishController,
-                              "Use the word in a sentence to show how it’s used",
-                              "*Provide at least one example sentence",
+                              "Example sentences in English",
+                              "*Provide at least one example sentence in English",
                               vm,
                               maxLines: 2),
                           const SizedBox(height: 16),
@@ -189,26 +189,44 @@ class ContributePage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label,
-      String errorText, AdminContributeViewModel vm,
-      {int maxLines = 1}) {
+  Widget _buildTextField(
+      TextEditingController controller,
+      String label,
+      String errorText,
+      AdminContributeViewModel vm, {
+        int maxLines = 1,
+      }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         TextField(
           controller: controller,
           maxLines: maxLines,
+          onChanged: (value) {
+            if (value.isNotEmpty) {
+              final newValue = value[0].toUpperCase() + value.substring(1);
+              if (newValue != value) {
+                controller.value = controller.value.copyWith(
+                  text: newValue,
+                  selection: TextSelection.collapsed(offset: newValue.length),
+                );
+              }
+            }
+          },
           decoration: _inputDecoration(label),
         ),
         if (vm.showValidationErrors && controller.text.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 4, left: 5),
-            child: Text(errorText,
-                style: const TextStyle(color: Colors.red, fontSize: 12)),
+            child: Text(
+              errorText,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
           ),
       ],
     );
   }
+
 
   Widget _buildValidationText(bool condition, String message,
       AdminContributeViewModel vm) {

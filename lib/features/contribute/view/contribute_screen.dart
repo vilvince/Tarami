@@ -239,7 +239,7 @@ class _ContributeScreenPageState extends State<ContributeScreenPage> {
               const Icon(Icons.block, color: Colors.redAccent, size: 100),
               const SizedBox(height: 20),
               const Text(
-                "🚫 You are temporarily restricted",
+                "You are temporarily restricted",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 22,

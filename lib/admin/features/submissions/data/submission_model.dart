@@ -9,6 +9,8 @@ class SubmissionModel {
   final String date;
   final String partOfSpeech;
   final String status; // Approved, Denied, Flagged
+  final String? rejectionReason;
+  final String? reviewNotes;
 
   // ✅ Extra fields for modal
   final String phonetic;
@@ -32,6 +34,8 @@ class SubmissionModel {
     required this.exampleInDialect,
     required this.exampleInEnglish,
     this.synonyms = "",
+    this.rejectionReason,
+    this.reviewNotes,
   });
 
 
@@ -68,6 +72,10 @@ class SubmissionModel {
       exampleInDialect: dialectExample,
       exampleInEnglish: englishExample,
       synonyms: data['synonyms'] ?? '',
+
+      // 🔽 ADD THESE TWO LINES 🔽
+      rejectionReason: data['rejection_reason'], // Pulls from Firestore
+      reviewNotes: data['review_notes'],
     );
   }
 }

@@ -97,20 +97,23 @@ class _InboxPageState extends State<InboxPage> {
 
   Widget _buildFilterTab(InboxVM vm, String label, {double radius = 20}) {
     final selected = vm.selectedFilter == label;
-    return GestureDetector(
-      onTap: () => vm.setFilter(label),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? brandNavy : Colors.white,
-          borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: Colors.black12),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w600,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => vm.setFilter(label),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? brandNavy : Colors.white,
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(color: Colors.black12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -367,7 +370,7 @@ class _InboxPageState extends State<InboxPage> {
                   children: [
                     Center(
                       child: Text(
-                        "Details for \"${item['word']}\"",
+                        "Details for ${item['word']}",
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
@@ -392,7 +395,7 @@ class _InboxPageState extends State<InboxPage> {
                       const Divider(color: Colors.white24, height: 24),
                       buildDetailRow(
                         "Reason:",
-                        reason!, // We know 'reason' is not empty here
+                        reason!,
                       ),
                       const Divider(color: Colors.white24, height: 24),
                     ] else

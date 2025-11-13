@@ -142,6 +142,16 @@ class SubmissionPage extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.more_horiz, size: 20),
                     onPressed: () {
+                      final String status = item.status;
+                      String? reason = '';
+
+                      if (status == "Denied") {
+                        reason = item.rejectionReason;
+                      } else if (status == "Flagged") {
+                        reason = item.reviewNotes;
+                      }
+
+                      final bool hasReason = reason?.isNotEmpty ?? false;
                       showDialog(
                         context: context,
                         builder: (_) => Dialog(
@@ -188,6 +198,14 @@ class SubmissionPage extends StatelessWidget {
                                   _detailRow("Example Sentence in English:", item.exampleInEnglish),
                                   _detailRow("Example Sentence in Dialect:", item.exampleInDialect),
                                   _detailRow("Synonyms:", item.synonyms),
+
+                                  if (hasReason) ...[
+                                    const Divider(color: Colors.white24, height: 24),
+                                    _detailRow(
+                                      "Reason:",
+                                      reason!, // We know 'reason' is not null or empty here
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -243,23 +261,26 @@ class SubmissionPage extends StatelessWidget {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? brandNavy : Colors.white,
-          border: Border.all(
-            color: selected ? Colors.transparent : Colors.grey.shade300,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? brandNavy : Colors.white,
+            border: Border.all(
+              color: selected ? Colors.transparent : Colors.grey.shade300,
+            ),
+            borderRadius: BorderRadius.circular(8),
           ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? Colors.white : Colors.black87,
-            fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-            fontSize: 13,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : Colors.black87,
+              fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 13,
+            ),
           ),
         ),
       ),
