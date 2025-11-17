@@ -6,10 +6,7 @@ class DifficultyStats {
   int games;
   int perfect;
 
-  DifficultyStats({
-    this.games = 0,
-    this.perfect = 0,
-  });
+  DifficultyStats({this.games = 0, this.perfect = 0});
 
   factory DifficultyStats.fromMap(Map<String, dynamic> map) {
     return DifficultyStats(
@@ -19,10 +16,7 @@ class DifficultyStats {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'games': games,
-      'perfect': perfect,
-    };
+    return {'games': games, 'perfect': perfect};
   }
 }
 
@@ -39,41 +33,25 @@ class UserStats {
     this.totalGames = 0,
     DateTime? lastPlayed,
     Map<String, DifficultyStats>? difficultyStats,
-  }) :
-        lastPlayed = lastPlayed ?? DateTime.now(),
+  })  : lastPlayed = lastPlayed ?? DateTime.now(),
         difficultyStats = difficultyStats ?? {
           'easy': DifficultyStats(),
           'medium': DifficultyStats(),
           'hard': DifficultyStats(),
         };
 
-  // Create initial stats for new users
   factory UserStats.initial() {
-    return UserStats(
-      currentStreak: 0,
-      badgeLevel: "Learner",
-      totalGames: 0,
-      lastPlayed: DateTime.now(),
-      difficultyStats: {
-        'easy': DifficultyStats(),
-        'medium': DifficultyStats(),
-        'hard': DifficultyStats(),
-      },
-    );
+    return UserStats();
   }
 
-  // Create UserStats from Firestore document
   factory UserStats.fromFirestore(Map<String, dynamic> data) {
     Map<String, DifficultyStats> diffStats = {};
-
     if (data['difficulty_stats'] != null) {
       Map<String, dynamic> statsMap = Map<String, dynamic>.from(data['difficulty_stats']);
       statsMap.forEach((key, value) {
         diffStats[key] = DifficultyStats.fromMap(Map<String, dynamic>.from(value));
       });
     }
-
-    // Ensure all difficulty levels are present
     ['easy', 'medium', 'hard'].forEach((level) {
       if (!diffStats.containsKey(level)) {
         diffStats[level] = DifficultyStats();
@@ -89,7 +67,6 @@ class UserStats {
     );
   }
 
-  // Convert UserStats to Firestore document
   Map<String, dynamic> toFirestore() {
     Map<String, dynamic> diffStatsMap = {};
     difficultyStats.forEach((key, value) {
@@ -105,14 +82,12 @@ class UserStats {
     };
   }
 
-  // Update stats after a game
+  /// Update stats after a game
   void updateAfterGame(int score, int totalQuestions, DifficultyLevel difficulty, bool isPerfectScore) {
     String difficultyStr = difficulty.toString().split('.').last;
 
-    // Update total games
     totalGames++;
 
-    // Update difficulty-specific stats
     if (difficultyStats.containsKey(difficultyStr)) {
       difficultyStats[difficultyStr]!.games++;
       if (isPerfectScore) {
@@ -120,83 +95,63 @@ class UserStats {
       }
     }
 
-    // Update streak
+    // ✅ YOUR NEW STREAK LOGIC:
+    // Only increases on a perfect score, never decreases.
     if (isPerfectScore) {
       currentStreak++;
-    } else {
-      // Streak stays the same (doesn't reset)
     }
 
-    // Update badge level based on total perfect games across all difficulties
+    // Update badge level based on the new streak
     _updateBadgeLevel();
 
-    // Update last played
     lastPlayed = DateTime.now();
   }
 
-  // Update badge level logic
+  /// ✅ FIX: Update badge level logic based on currentStreak
   void _updateBadgeLevel() {
-    int totalPerfectGames = difficultyStats.values
-        .map((stats) => stats.perfect)
-        .fold(0, (sum, perfect) => sum + perfect);
-
-    if (totalPerfectGames >= 30) {
+    if (currentStreak >= 21) {
       badgeLevel = "Speaker";
-    } else if (totalPerfectGames >= 10) {
+    } else if (currentStreak >= 11) {
       badgeLevel = "Moderate";
     } else {
       badgeLevel = "Learner";
     }
   }
 
-  // Get current difficulty based on streak
+  /// ✅ FIX: Get current difficulty based on currentStreak
   DifficultyLevel getCurrentDifficulty() {
-    if (currentStreak >= 20) {
+    if (currentStreak >= 21) {
       return DifficultyLevel.hard;
-    } else if (currentStreak >= 10) {
+    } else if (currentStreak >= 11) {
       return DifficultyLevel.medium;
     } else {
       return DifficultyLevel.easy;
     }
   }
 
-  // Get streak needed for next difficulty
+  /// ✅ FIX: Get streak needed for next difficulty
   int getStreakForNextDifficulty() {
-    DifficultyLevel currentDiff = getCurrentDifficulty();
-    switch (currentDiff) {
-      case DifficultyLevel.easy:
-        return 10 - currentStreak;
-      case DifficultyLevel.medium:
-        return 20 - currentStreak;
-      case DifficultyLevel.hard:
-        return 0; // Already at highest
+    if (currentStreak >= 21) {
+      return 0; // Already at highest
+    } else if (currentStreak >= 11) {
+      return 21 - currentStreak; // Streaks needed to reach 21
+    } else {
+      return 11 - currentStreak; // Streaks needed to reach 11
     }
   }
 
-  // Get total perfect games
+  // --- Other helper methods ---
+
   int getTotalPerfectGames() {
     return difficultyStats.values
         .map((stats) => stats.perfect)
         .fold(0, (sum, perfect) => sum + perfect);
   }
 
-  // Get success rate for a difficulty
   double getSuccessRate(String difficulty) {
     if (!difficultyStats.containsKey(difficulty)) return 0.0;
     final stats = difficultyStats[difficulty]!;
     if (stats.games == 0) return 0.0;
     return (stats.perfect / stats.games) * 100;
   }
-
-  // Legacy methods for backward compatibility
-  void updateStats(bool isPerfectScore) {
-    if (isPerfectScore) {
-      currentStreak++;
-      _updateBadgeLevel();
-    }
-    lastPlayed = DateTime.now();
-  }
-
-  // Legacy getter for compatibility
-  int get streak => currentStreak;
 }

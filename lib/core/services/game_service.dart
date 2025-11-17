@@ -92,7 +92,7 @@ class FirebaseGameService {
 
       // Shuffle and return only 10 questions
       questions.shuffle();
-      return questions.take(11).toList();
+      return questions.take(10).toList();
     } catch (e) {
       print('Error fetching questions: $e');
       // Fallback to existing quiz service if Firestore fails
