@@ -43,8 +43,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                 children: [
                   // OK button
                   TextButton(
-                    onPressed: () async {
-                      await viewModel.removeFavoriteByIndex(index);
+                    onPressed: () {
+                      viewModel.removeFavoriteByIndex(index);
                       Navigator.pop(context);
                     },
                     style: TextButton.styleFrom(

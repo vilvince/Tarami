@@ -178,6 +178,13 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final viewModel = context.watch<DictionaryViewModel>();
 
+    if (viewModel.searchQuery.isEmpty && _searchController.text.isNotEmpty) {
+      // We use a post-frame callback to avoid modifying the controller during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchController.clear();
+      });
+    }
+
     return WillPopScope(
         onWillPop: () async {
           if (viewModel.selectedWord != null) {
@@ -229,7 +236,6 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
             child: const Icon(Icons.favorite, color: Colors.white),
           ),
           const SizedBox(width: 12),
-          const Icon(Icons.notifications_none, color: Colors.white),
           const SizedBox(width: 12),
         ],
       ),
@@ -374,7 +380,7 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
                     padding: const EdgeInsets.all(8),
                     child: Icon(
                       Icons.mic,
-                      color: _isListening ? Colors.white : Colors.grey[0],
+                      color: _isListening ? Colors.redAccent : Colors.grey,
                       size: 25,
                     ),
                   ),
@@ -469,26 +475,78 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
       );
     }
 
+// In lib/features/dictionary/view/dictionary_screen.dart
+
     return ListView.builder(
       itemCount: viewModel.currentWordList.length,
       itemBuilder: (context, index) {
-        return ListTile(
-          title: Text(
-            viewModel.currentWordList[index],
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          onTap: () {
-            if (viewModel.searchQuery.isNotEmpty) {
-              _searchController.text = viewModel.currentWordList[index];
-              setState(() => _isSearchLocked = true);
+        final word = viewModel.currentWordList[index];
+
+        final String firstLetter = word.isNotEmpty ? word[0].toUpperCase() : '#';
+        final String headerText = "$firstLetter${firstLetter.toLowerCase()}";
+
+        bool showHeader = false;
+
+        if (viewModel.searchQuery.isEmpty) {
+          if (index == 0) {
+            showHeader = true;
+          } else {
+            final String prevWord = viewModel.currentWordList[index - 1];
+            final String prevFirstLetter = prevWord.isNotEmpty ? prevWord[0].toUpperCase() : '#';
+            if (firstLetter != prevFirstLetter) {
+              showHeader = true;
             }
-            FocusScope.of(context).unfocus();
-            viewModel.selectWord(viewModel.currentWordList[index]);
-          },
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ✅ HEADER
+            if (showHeader)
+              Padding(
+                // Top: 24 (Space from previous section)
+                // Bottom: -5 (Negative margin to pull the next item UP)
+                padding: const EdgeInsets.only(left: 17, right: 20, top: 24, bottom: 0),
+                child: Text(
+                  headerText,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF6C6B6B),
+                    height: 0.8, // ✅ Reduce line height to less than 1.0 to crop font padding
+                  ),
+                ),
+              ),
+
+            // ✅ WORD ITEM
+            // Use Transform.translate to nudge the list tile up slightly
+            Transform.translate(
+              offset: showHeader ? const Offset(0, -5) : Offset.zero, // ✅ Move up 5px if under a header
+              child: ListTile(
+                minVerticalPadding: 10,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                visualDensity: const VisualDensity(vertical: -4), // ✅ Compact the tile vertically
+
+                title: Text(
+                  word,
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                onTap: () {
+                  if (viewModel.searchQuery.isNotEmpty) {
+                    _searchController.text = viewModel.currentWordList[index];
+                    setState(() => _isSearchLocked = true);
+                  }
+                  FocusScope.of(context).unfocus();
+                  viewModel.selectWord(viewModel.currentWordList[index]);
+                },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -563,23 +621,29 @@ class _DictionaryState extends State<Dictionary> with SingleTickerProviderStateM
           // Tagalog & POS
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 13.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "Tagalog: $tagalog",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 16,
                   ),
                 ),
-                 Text(
-                  partOfSpeech,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
+                const SizedBox(height: 4),
+
+
+                 Align(
+                   alignment: Alignment.centerRight,
+                   child: Text(
+                    partOfSpeech,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                   ),
+                 ),
               ],
             ),
           ),

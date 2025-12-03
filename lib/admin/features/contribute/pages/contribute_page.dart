@@ -17,146 +17,137 @@ class ContributePage extends StatelessWidget {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
-                child: ChangeNotifierProvider(
-                  create: (_) => AdminContributeViewModel(),
-                  child: Consumer<AdminContributeViewModel>(
-                    builder: (context, vm, _) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Let’s keep our language alive — send us a word!",
-                            textAlign: TextAlign.center,
-                            style: Theme
-                                .of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+              child: ChangeNotifierProvider(
+                create: (_) => AdminContributeViewModel(),
+                child: Consumer<AdminContributeViewModel>(
+                  builder: (context, vm, _) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Let’s keep our language alive — send us a word!",
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Dialect dropdown
+                        _buildDialectDropdown(vm),
+                        _buildValidationText(vm.selectedDialect == null,
+                            "*Select a dialect from the list", vm),
+                        const SizedBox(height: 16),
+
+                        // Word
+                        _buildTextField(
+                            vm.wordController,
+                            "Please enter the word you want to contribute",
+                            "*Enter the word you want to contribute",
+                            vm),
+                        const SizedBox(height: 16),
+
+                        // Translation
+                        _buildTextField(
+                            vm.translationController,
+                            "Provide the translation in the selected dialect",
+                            "*Provide the translation",
+                            vm),
+                        const SizedBox(height: 16),
+
+                        // Phonetic
+                        _buildTextField(vm.phoneticController,
+                            "Phonetic (e.g., /va·ken·si/)", "*Required", vm),
+                        const SizedBox(height: 16),
+
+                        // Tagalog translation
+                        _buildTextField(
+                            vm.tagalogTranslationController,
+                            "Provide the Tagalog translation",
+                            "*Provide the Tagalog translation",
+                            vm),
+                        const SizedBox(height: 16),
+
+                        // Part of Speech
+                        _buildPartOfSpeechDropdown(vm),
+                        _buildValidationText(vm.selectedPartOfSpeech == null,
+                            "*Choose the part of speech", vm),
+                        const SizedBox(height: 16),
+
+                        // Definition
+                        _buildTextField(
+                            vm.definitionController,
+                            "Describe the meaning of the word clearly",
+                            "*Give a clear definition",
+                            vm,
+                            maxLines: 2),
+                        const SizedBox(height: 16),
+
+                        // Example in dialect
+                        _buildTextField(
+                            vm.exampleSentenceInDialectController,
+                            "Use the word in a sentence to show how it’s used in dialect",
+                            "*Provide at least one example sentence",
+                            vm,
+                            maxLines: 2),
+                        const SizedBox(height: 16),
+
+                        // Example in English
+                        _buildTextField(
+                            vm.exampleSentenceInEnglishController,
+                            "Use the word in a sentence to show how it’s used",
+                            "*Provide at least one example sentence",
+                            vm,
+                            maxLines: 2),
+                        const SizedBox(height: 16),
+
+                        // Synonyms
+                        _buildTextField(
+                            vm.synonymsController,
+                            "Synonyms (separate with commas)",
+                            "*Optional",
+                            vm,
+                            maxLines: 2),
+                        const SizedBox(height: 32),
+
+                        // Buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFDC500),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: () {
+                                if (!vm.validateForm()) return;
+                                showSummaryModal(context, vm);
+                              },
+                              child: const Text("Submit",
+                                  style: TextStyle(color: Colors.black)),
                             ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Dialect dropdown
-                          _buildDialectDropdown(vm),
-                          _buildValidationText(
-                              vm.selectedDialect == null,
-                              "*Select a dialect from the list",
-                              vm),
-                          const SizedBox(height: 16),
-
-                          // Word
-                          _buildTextField(
-                              vm.wordController,
-                              "Please enter the word you want to contribute",
-                              "*Enter the word you want to contribute",
-                              vm),
-                          const SizedBox(height: 16),
-
-                          // Translation
-                          _buildTextField(
-                              vm.translationController,
-                              "Provide the translation in the selected dialect",
-                              "*Provide the translation",
-                              vm),
-                          const SizedBox(height: 16),
-
-                          // Phonetic
-                          _buildTextField(vm.phoneticController,
-                              "Phonetic (e.g., /va·ken·si/)",
-                              "*Required", vm),
-                          const SizedBox(height: 16),
-
-                          // Tagalog translation
-                          _buildTextField(
-                              vm.tagalogTranslationController,
-                              "Provide the Tagalog translation",
-                              "*Provide the Tagalog translation",
-                              vm),
-                          const SizedBox(height: 16),
-
-                          // Part of Speech
-                          _buildPartOfSpeechDropdown(vm),
-                          _buildValidationText(vm.selectedPartOfSpeech == null,
-                              "*Choose the part of speech", vm),
-                          const SizedBox(height: 16),
-
-                          // Definition
-                          _buildTextField(
-                              vm.definitionController,
-                              "Describe the meaning of the word clearly",
-                              "*Give a clear definition",
-                              vm,
-                              maxLines: 2),
-                          const SizedBox(height: 16),
-
-                          // Example in dialect
-                          _buildTextField(
-                              vm.exampleSentenceInDialectController,
-                              "Example sentences in the selected dialect",
-                              "*Provide at least one example sentence in the selected dialect",
-                              vm,
-                              maxLines: 2),
-                          const SizedBox(height: 16),
-
-                          // Example in English
-                          _buildTextField(
-                              vm.exampleSentenceInEnglishController,
-                              "Example sentences in English",
-                              "*Provide at least one example sentence in English",
-                              vm,
-                              maxLines: 2),
-                          const SizedBox(height: 16),
-
-
-                          // Synonyms
-                          _buildTextField(
-                              vm.synonymsController,
-                              "Synonyms (separate with commas)",
-                              "*Optional",
-                              vm,
-                              maxLines: 2),
-                          const SizedBox(height: 32),
-
-                          // Buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFDC500),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 32, vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8)),
-                                ),
-                                onPressed: () {
-                                  if (!vm.validateForm()) return;
-                                  showSummaryModal(context, vm);
-                                },
-                                child: const Text("Submit",
-                                    style: TextStyle(color: Colors.black)),
+                            const SizedBox(width: 16),
+                            OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8)),
                               ),
-                              const SizedBox(width: 16),
-                              OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 32, vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8)),
-                                ),
-                                onPressed: vm.clearForm,
-                                child: const Text("Cancel"),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                              onPressed: vm.clearForm,
+                              child: const Text("Cancel"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
-
+              ),
             ),
           ),
         ),
@@ -202,6 +193,7 @@ class ContributePage extends StatelessWidget {
         TextField(
           controller: controller,
           maxLines: maxLines,
+          // Auto-capitalize logic
           onChanged: (value) {
             if (value.isNotEmpty) {
               final newValue = value[0].toUpperCase() + value.substring(1);
@@ -227,9 +219,8 @@ class ContributePage extends StatelessWidget {
     );
   }
 
-
-  Widget _buildValidationText(bool condition, String message,
-      AdminContributeViewModel vm) {
+  Widget _buildValidationText(
+      bool condition, String message, AdminContributeViewModel vm) {
     return condition && vm.showValidationErrors
         ? Padding(
       padding: const EdgeInsets.only(top: 6, left: 5),
@@ -239,7 +230,6 @@ class ContributePage extends StatelessWidget {
         : const SizedBox.shrink();
   }
 
-  // 🔹 Shared input style
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
@@ -249,14 +239,49 @@ class ContributePage extends StatelessWidget {
   }
 
   // ------- Modals --------
+
+  /// Shows a confirmation dialog when a word already exists.
+  Future<bool?> _showUpdateConfirmationDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0A2A44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Word Already Exists",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          "The word is already existing. Do you want to update its information instead?",
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          // NO Button (Cancel)
+          TextButton(
+            onPressed: () => Navigator.pop(context, false), // Return false
+            child: const Text("No", style: TextStyle(color: Colors.white)),
+          ),
+          // YES Button (Proceed)
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFC107),
+              foregroundColor: Colors.black,
+            ),
+            onPressed: () => Navigator.pop(context, true), // Return true
+            child: const Text("Yes"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void showSummaryModal(BuildContext context, AdminContributeViewModel vm) {
     showDialog(
       context: context,
       builder: (dialogContext) {
         return Dialog(
           backgroundColor: const Color(0xFF0A2A44), // 🔹 Dark blue background
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             width: 400,
             padding: const EdgeInsets.all(20),
@@ -276,19 +301,13 @@ class ContributePage extends StatelessWidget {
                     const SizedBox(height: 12),
                     buildSummaryRow("Dialect:", vm.selectedDialect ?? ""),
                     buildSummaryRow("Word:", vm.wordController.text),
-                    buildSummaryRow(
-                        "Translation:", vm.translationController.text),
+                    buildSummaryRow("Translation:", vm.translationController.text),
                     buildSummaryRow("Phonetic:", vm.phoneticController.text),
-                    buildSummaryRow(
-                        "Tagalog:", vm.tagalogTranslationController.text),
-                    buildSummaryRow(
-                        "Part of Speech:", vm.selectedPartOfSpeech ?? ""),
-                    buildSummaryRow(
-                        "Definition:", vm.definitionController.text),
-                    buildSummaryRow("Example in Dialect:",
-                        vm.exampleSentenceInDialectController.text),
-                    buildSummaryRow("Example (English):",
-                        vm.exampleSentenceInEnglishController.text),
+                    buildSummaryRow("Tagalog:", vm.tagalogTranslationController.text),
+                    buildSummaryRow("Part of Speech:", vm.selectedPartOfSpeech ?? ""),
+                    buildSummaryRow("Definition:", vm.definitionController.text),
+                    buildSummaryRow("Example in Dialect:", vm.exampleSentenceInDialectController.text),
+                    buildSummaryRow("Example (English):", vm.exampleSentenceInEnglishController.text),
                     buildSummaryRow("Synonyms:", vm.synonymsController.text),
                     const SizedBox(height: 20),
                     Row(
@@ -307,23 +326,42 @@ class ContributePage extends StatelessWidget {
                           ),
                           const SizedBox(width: 10),
                           ElevatedButton(
-                            // ✅ THIS IS THE UPDATED ONPRESSED LOGIC
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
+                            child: const Text("Submit"),
+                            // ✅ UPDATED ONPRESSED LOGIC
                             onPressed: () async {
                               try {
-                                await vm.submitContribution();
-                                // On success, close the summary dialog and show the success modal.
-                                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-                                if (context.mounted) showSuccessModal(context);
+                                // check the database status
+                                final result = await vm.checkExistence();
+                                final bool wordExists = result['wordExists']!;
+                                final bool dialectExists = result['dialectExists']!;
+
+                                bool shouldProceed = true;
+
+
+                                if (wordExists && dialectExists) {
+                                  if(context.mounted) {
+                                    final bool? userConfirmed = await _showUpdateConfirmationDialog(context);
+                                    if (userConfirmed != true) {
+                                      shouldProceed = false;
+                                    }
+                                  }
+                                }
+
+                                // 3. Proceed if allowed
+                                if (shouldProceed) {
+                                  await vm.submitContribution();
+
+                                  if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                                  if (context.mounted) showSuccessModal(context);
+                                }
                               } catch (e) {
-                                // On failure, close the summary dialog and show the new error modal.
                                 if (dialogContext.mounted) Navigator.of(dialogContext).pop();
                                 if (context.mounted) {
                                   _showErrorModal(context, e.toString());
                                 }
                               }
                             },
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFC107)),
-                            child: const Text("Submit"),
                           ),
                         ]
                       ],
@@ -344,8 +382,7 @@ class ContributePage extends StatelessWidget {
       builder: (context) {
         return Dialog(
           backgroundColor: const Color(0xFF0A2A44), // 🔹 Dark blue background
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             width: 500,
             padding: const EdgeInsets.all(20),
@@ -353,13 +390,19 @@ class ContributePage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  "Great job! Your word was submitted.\nWant to add more?",
+                  "Success!",
                   textAlign: TextAlign.left,
                   style: TextStyle(
-                    color: Colors.white, // 🔹 White text
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "The word has been successfully added/updated.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -369,13 +412,9 @@ class ContributePage extends StatelessWidget {
                       onPressed: () => Navigator.of(context).pop(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFFC107),
-                        // 🔹 Yellow button
                         foregroundColor: Colors.black,
-                        // 🔹 Black text
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                       ),
                       child: const Text("Ok"),
                     ),
@@ -400,7 +439,7 @@ class ContributePage extends StatelessWidget {
             child: Text(
               label,
               style: const TextStyle(
-                color: Colors.white, // 🔹 White labels
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -408,7 +447,7 @@ class ContributePage extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: Colors.white), // 🔹 White values
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -417,13 +456,12 @@ class ContributePage extends StatelessWidget {
   }
 
   void _showErrorModal(BuildContext context, String message) {
-    // Clean up the error message (removes "Exception: " prefix)
     final displayMessage = message.startsWith('Exception: ') ? message.substring(11) : message;
 
     showDialog(
       context: context,
       builder: (dialogContext) => Dialog(
-        backgroundColor: const Color(0xFF0A2A44), // Dark blue background
+        backgroundColor: const Color(0xFF0A2A44),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -432,9 +470,9 @@ class ContributePage extends StatelessWidget {
             children: [
               const Icon(Icons.error_outline, color: Colors.redAccent, size: 50),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 'Submission Failed',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -442,7 +480,7 @@ class ContributePage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                displayMessage, // Use the cleaned-up message
+                displayMessage,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.white70, fontSize: 16),
               ),

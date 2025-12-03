@@ -11,7 +11,8 @@ class Submission {
   final String partOfSpeech;
   final String tagalog;
   final String definition;
-  final String exampleSentence;
+  final String exampleInDialect;
+  final String exampleInEnglish;
   final String synonyms;
   final String? rejectionReason;
 
@@ -26,7 +27,8 @@ class Submission {
     required this.partOfSpeech,
     required this.tagalog,
     required this.definition,
-    required this.exampleSentence,
+    required this.exampleInDialect,
+    required this.exampleInEnglish,
     required this.synonyms,
     this.rejectionReason,
   });
@@ -36,6 +38,15 @@ class Submission {
 
     // Helper to capitalize status
     String capitalize(String s) => s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1);
+
+    final String combinedExample = data['example_sentence'] as String? ?? '';
+    final List<String> parts = combinedExample.split('|');
+
+    // Get the first part (Dialect) or empty if missing
+    final String dialectExample = parts.isNotEmpty ? parts[0].trim() : '';
+
+    // Get the second part (English) or empty if missing
+    final String englishExample = parts.length > 1 ? parts[1].trim() : '';
 
     return Submission(
       id: doc.id,
@@ -48,7 +59,8 @@ class Submission {
       tagalog: data['tagalog_translation'] ?? '',
       definition: data['definition'] ?? '',
       partOfSpeech: data['part_of_speech'] ?? '',
-      exampleSentence: data['example_sentence'] ?? '',
+      exampleInDialect: dialectExample,
+      exampleInEnglish: englishExample,
       synonyms: data['synonyms'] ?? '',
       rejectionReason: data['rejection_reason'] ?? data['review_notes'],
     );

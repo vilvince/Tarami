@@ -44,6 +44,22 @@ class AdminContributeViewModel extends ChangeNotifier {
   ];
 
 
+  Future<Map<String, bool>> checkExistence() async {
+    try {
+      if (wordController.text.isEmpty || selectedDialect == null) {
+        return {'wordExists': false, 'dialectExists': false};
+      }
+
+      return await _service.checkWordAndDialectExist(
+          wordController.text,
+          selectedDialect!
+      );
+    } catch (e) {
+      print("Error checking existence: $e");
+      return {'wordExists': false, 'dialectExists': false};
+    }
+  }
+  
   //Select handlers
   void selectDialect(String? dialect){
     selectedDialect = dialect;

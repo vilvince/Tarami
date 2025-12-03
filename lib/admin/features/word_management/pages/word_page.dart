@@ -203,10 +203,15 @@ class WordPage extends StatelessWidget {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Confirm Deletion"),
-        content: Text("Are you sure you want to delete $countToDelete word(s)? This action cannot be undone."),
+        backgroundColor: const Color(0xFF0A2A44),
+
+        title: const Text(
+          "Confirm Deletion",
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text("Are you sure you want to delete ${vm.selectedUniqueIds.length} ${vm.selectedUniqueIds.length == 1 ? 'Word' : 'Words'}? This action cannot be undone.", style: TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel",  style: TextStyle(color: Colors.white),),),
           FilledButton(
               style: FilledButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () => Navigator.pop(context, true),

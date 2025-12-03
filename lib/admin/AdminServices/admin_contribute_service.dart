@@ -72,6 +72,29 @@ class AdminContributeService {
     }
   }
 
+  Future<Map<String, bool>> checkWordAndDialectExist(String word, String dialect) async {
+    final dialectKey = _dialectNameToKey(dialect);
+
+    final query = await _firestore
+        .collection('dictionary')
+        .where('word', isEqualTo: word.trim())
+        .limit(1)
+        .get();
+
+    // Scenario 1: Word does not exist at all
+    if (query.docs.isEmpty) {
+      return {'wordExists': false, 'dialectExists': false};
+    }
+
+    // Scenario 2: Word exists, check if dialect exists inside translations array
+    final data = query.docs.first.data();
+    final translations = List<Map<String, dynamic>>.from(data['translations'] ?? []);
+
+    final dialectExists = translations.any((t) => t['dialect'] == dialectKey);
+
+    return {'wordExists': true, 'dialectExists': dialectExists};
+  }
+
   // --- Helper Methods ---
   String _dialectNameToKey(String dialectName) {
     return dialectName.toLowerCase().trim().replaceAll(' ', '_');

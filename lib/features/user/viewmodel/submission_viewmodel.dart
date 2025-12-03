@@ -32,7 +32,6 @@ class SubmissionViewModel extends ChangeNotifier {
         throw Exception('User not authenticated');
       }
 
-      print('Loading submissions for user: ${user.uid}');
 
       // Query the word_submissions collection directly (no orderBy to avoid index requirement)
       final querySnapshot = await _firestore
@@ -40,21 +39,17 @@ class SubmissionViewModel extends ChangeNotifier {
           .where('submitted_by_email', isEqualTo: user.email)
           .get();
 
-      print('Found ${querySnapshot.docs.length} submissions');
 
       // Convert Firestore documents to Submission objects
       _submissions = querySnapshot.docs.map((doc) {
         final data = doc.data();
-        print('Processing submission: ${data['word']} - Status: ${data['status']}');
 
         // Parse example sentences (stored as combined string)
-        final exampleSentence = data['example_sentence'] ?? '';
+        final exampleSentence = data['example_sentence'] as String? ?? '';
         final examples = exampleSentence.split('|');
         final dialectExample = examples.isNotEmpty ? examples[0].trim() : '';
         final englishExample = examples.length > 1 ? examples[1].trim() : '';
-        final combinedExample = dialectExample.isNotEmpty && englishExample.isNotEmpty
-            ? '$dialectExample | $englishExample'
-            : dialectExample + englishExample;
+
 
         return Submission(
           id: data['submitted_id'] ?? doc.id,
@@ -69,7 +64,8 @@ class SubmissionViewModel extends ChangeNotifier {
           partOfSpeech: data['part_of_speech'] ?? '',
           tagalog: data['tagalog_translation'] ?? '',
           definition: data['definition'] ?? '',
-          exampleSentence: combinedExample,
+          exampleInDialect: dialectExample,
+          exampleInEnglish: englishExample,
           synonyms: data['synonyms'] ?? 'N/A',
           rejectionReason: data['rejection_reason'] ?? data['review_notes'],
 

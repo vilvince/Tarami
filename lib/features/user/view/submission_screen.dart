@@ -1,4 +1,3 @@
-// screens/submission_screen.dart
 import 'package:flutter/material.dart';
 import 'package:tarami_application/features/user/viewmodel/submission_viewmodel.dart';
 import 'package:tarami_application/features/user/view/submission_detail_screen.dart';
@@ -98,7 +97,8 @@ class _SubmissionScreenState extends State<SubmissionScreen> with SingleTickerPr
       'tagalog': submission.tagalog,
       'definition': submission.definition,
       'partOfSpeech': submission.partOfSpeech,
-      'exampleSentence': submission.exampleSentence,
+      'exampleInDialect': submission.exampleInDialect,
+      'exampleInEnglish': submission.exampleInEnglish,
       'synonyms': submission.synonyms,
       'rejectionReason': submission.rejectionReason ?? '',
     };

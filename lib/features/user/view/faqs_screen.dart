@@ -7,48 +7,52 @@ class FaqsScreen extends StatelessWidget {
     {
       'question': 'What is Tarami?',
       'answer':
-      'Tarami is a digital dictionary app that helps users translate Albay dialects into Tagalog and English, and vice versa. It promotes cultural preservation and language learning.'
+      'Tarami is a mobile dictionary application designed to provide translations, definitions, trivias, and commonly used phrases from the Albay region. It serves as a quick reference tool for users who want to learn or understand the Bikol language spoken in Albay.'
     },
     {
-      'question': 'What dialects are included in Tarami?',
-      'answer': 'Currently, Tarami includes Albay dialects like Bicolano, Legazpeño, etc.'
+      'question': 'Does Tarami work offline?',
+      'answer': 'Yes. The core dictionary features, word search, definitions, and basic browsing, can be accessed offline once the app is installed. This allows users to use the app even without internet connection.'
     },
     {
-      'question': 'How can I suggest a new word or translation?',
+      'question': 'When do I need an internet connection?',
       'answer':
-      'Tap on "Contribute" in the navigation bar and fill out the word submission form.'
+      'An internet connection is required for the following features:\n'
+      'Logging in or creating an account.\n'
+      'Contributing new words.\n'
+      'Playing in-app games.\n'
+      'Refreshing and downloading newly added words from the server.'
     },
     {
-      'question': 'Can I edit or delete my submitted suggestions?',
-      'answer': 'No, submissions cannot be edited once sent. You may contact support for corrections.'
+      'question': 'Is Tarami free to use?',
+      'answer': 'Yes. All major features of Tarami are free. Users can access the dictionary, contribute words, and play games without any subscription.'
     },
     {
-      'question': 'Are all words verified by language experts?',
-      'answer': 'Yes, all entries are reviewed and verified by language experts before being approved.'
+      'question': 'How do I search for words in Tarami?',
+      'answer': 'Simply type a word into the search bar. The app will display its meaning, translation, pronunciation (if available), and example usage.'
     },
     {
-      'question': 'Can I use Tarami for school projects or research?',
-      'answer': 'Yes! You may use Tarami as a reference tool with proper citation.'
+      'question': 'Can users submit or contribute new words?',
+      'answer': 'Yes. Tarami includes a Word Contribution feature. Users can suggest new entries or corrections, but this requires an online connection so the suggestion can be uploaded to the system.'
     },
     {
-      'question': 'How can I give feedback or report an error?',
-      'answer': 'Go to "User" > "About Us" > "Contact" to submit your feedback or report errors.'
+      'question': 'Are the translations in Tarami verified?',
+      'answer': 'Yes. Dictionary entries are based on credible sources and consultations with native speakers. However, since Bikol-Albay has dialect variations, some words may have multiple meanings depending on the locality.'
     },
     {
-      'question': 'Can I edit or delete my submitted suggestions?',
-      'answer': 'No, submissions cannot be edited once sent. You may contact support for corrections.'
+      'question': 'Does Tarami include pronunciation guides?',
+      'answer': 'Yes. Selected words have pronunciation guides to help users practice correct pronunciation.'
     },
     {
-      'question': 'Are all words verified by language experts?',
-      'answer': 'Yes, all entries are reviewed and verified by language experts before being approved.'
+      'question': ' Can I use Tarami for academic or research purposes?',
+      'answer': 'Absolutely. Tarami can serve as a reference tool for students, teachers, and researchers focusing on the Albay variant of the Bikol language.'
     },
     {
-      'question': 'Can I use Tarami for school projects or research?',
-      'answer': 'Yes! You may use Tarami as a reference tool with proper citation.'
+      'question': 'Will Tarami receive updates?',
+      'answer': 'Yes. The developers will release periodic updates to add new words, improve app features, enhance gameplay, and address user feedback.'
     },
     {
-      'question': 'How can I give feedback or report an error?',
-      'answer': 'Go to "User" > "About Us" > "Contact" to submit your feedback or report errors.'
+      'question': 'Who is Tarami designed for?',
+      'answer': 'Tarami is intended for students, locals, tourists, educators, and anyone interested in learning or understanding the Albay Bikol language.'
     },
   ];
 

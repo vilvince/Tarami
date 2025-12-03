@@ -6,20 +6,19 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100], // Light background
+      backgroundColor: Colors.grey[100],
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: Back button and Title
             Padding(
               padding: const EdgeInsets.only(left: 12.0, top: 12.0), // Adjusted padding
               child: Row(
                 children: [
                   IconButton(
                     color: Colors.black,
-                    iconSize: 28, // Slightly smaller
-                    icon: const Icon(Icons.arrow_back_ios_new), // Different back icon
+                    iconSize: 28,
+                    icon: const Icon(Icons.arrow_back_ios_new),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 84),
@@ -33,22 +32,18 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ],
               ),
-            ), // <--- Padding for header ends here
+            ),
 
-            // Main Content Area
             Expanded( // Use Expanded to allow the content to take available vertical space
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0), // Padding for the content
+                padding: const EdgeInsets.symmetric(horizontal: 20.0), // Padding for the content
                 child: Center( // Center the text block
                   child: SingleChildScrollView( // In case content is too long for the screen
                     child: const Text(
-                      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. '
-                          'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. '
-                          'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. '
-                          'Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+                      'TARAMI (Terminology for Albay’s Root Accent Mobile Integration) is a mobile dictionary app that preserves and promotes the dialects of Albay. Users can search for words from Central Bikol, East Miraya, West Miraya, and Libon Bikol, and see their definitions, translations, parts of speech, pronunciation, and example sentences. The app also includes a single interactive Game where users can test their knowledge and improve familiarity with the dialect vocabulary. TARAMI makes learning the Albay dialects easy, engaging, and accessible for everyone.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 16,
                         color: Colors.black87,
                         height: 1.6, // Line height
                       ),

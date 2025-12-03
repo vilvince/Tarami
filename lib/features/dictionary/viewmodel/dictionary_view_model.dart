@@ -466,12 +466,13 @@ class DictionaryViewModel extends ChangeNotifier {
     ]);
   }
 
-  final Set<String> audioWords = {
-    "breeze", // test word with audio
-  };
-
-  bool hasAudio(String word) {
-    return audioWords.contains(word.toLowerCase());
+  void resetState() {
+    _selectedWordEntry = null;
+    _searchQuery = '';      // Clear the query string
+    _searchResults = [];    // Clear the results list
+    _isSearching = false;
+    _errorMessage = null;
+    notifyListeners();      // Tell the UI to update
   }
 
   Future<void> playAudio(String? url) async{

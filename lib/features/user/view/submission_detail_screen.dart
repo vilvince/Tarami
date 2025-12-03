@@ -114,7 +114,8 @@ class SubmissionDetailScreen extends StatelessWidget {
                         buildDetailRow('Phonetic:', submission['phonetic']),
                         buildDetailRow('Part of Speech:', submission['partOfSpeech']),
                         buildDetailRow('Definition:', submission['definition']),
-                        buildDetailRow('Example Sentence:', submission['exampleSentence']),
+                        buildDetailRow('Example Sentence in Dialect:', submission['exampleInDialect']),
+                        buildDetailRow('Example Sentence in English:', submission['exampleInEnglish']),
                         buildDetailRow('Synonyms:', submission['synonyms']),
 
                       ],
@@ -164,7 +165,7 @@ class SubmissionDetailScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 3,
+            flex: 6,
             child: Text(
               label,
               style: const TextStyle(
@@ -173,6 +174,7 @@ class SubmissionDetailScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(width: 12),
           Expanded(
             flex: 7,
             child: Text(
